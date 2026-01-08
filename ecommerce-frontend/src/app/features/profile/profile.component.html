@@ -1,0 +1,112 @@
+<div class="profile-container">
+  <div class="profile-card">
+    <div class="profile-header">
+      <!-- Profile Image with Upload -->
+      <div class="profile-avatar-wrapper">
+        <div class="profile-avatar" [class.has-image]="imagePreview">
+          <img *ngIf="imagePreview" [src]="imagePreview" alt="Profile" class="profile-image">
+          <i *ngIf="!imagePreview" class="fas fa-user"></i>
+        </div>
+        <label for="imageUpload" class="upload-overlay" [class.uploading]="uploadingImage">
+          <i *ngIf="!uploadingImage" class="fas fa-camera"></i>
+          <span *ngIf="uploadingImage" class="spinner-border spinner-border-sm"></span>
+        </label>
+        <input 
+          type="file" 
+          id="imageUpload" 
+          accept="image/*" 
+          (change)="onFileSelected($event)"
+          style="display: none;"
+        >
+      </div>
+      
+      <h2>My Profile</h2>
+      <p class="text-muted">Manage your account information</p>
+      
+      <!-- Image Actions -->
+      <div *ngIf="selectedFile" class="image-actions mb-3">
+        <button type="button" class="btn btn-sm btn-primary me-2" (click)="uploadImage()" [disabled]="uploadingImage">
+          <i class="fas fa-upload"></i> Upload Image
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-secondary" (click)="removeImage()">
+          <i class="fas fa-times"></i> Cancel
+        </button>
+      </div>
+    </div>
+
+    <!-- Success Message -->
+    <div *ngIf="success" class="alert alert-success alert-dismissible fade show" role="alert">
+      <i class="fas fa-check-circle"></i> {{ success }}
+      <button type="button" class="btn-close" (click)="success = ''"></button>
+    </div>
+
+    <!-- Error Message -->
+    <div *ngIf="error" class="alert alert-danger alert-dismissible fade show" role="alert">
+      <i class="fas fa-exclamation-circle"></i> {{ error }}
+      <button type="button" class="btn-close" (click)="error = ''"></button>
+    </div>
+
+    <!-- Profile Form -->
+    <form [formGroup]="profileForm" (ngSubmit)="onSubmit()" class="profile-form">
+      <div class="row g-3">
+        <!-- Full Name -->
+        <div class="col-12">
+          <label class="form-label">
+            <i class="fas fa-user"></i> Full Name
+          </label>
+          <input
+            type="text"
+            class="form-control"
+            formControlName="fullName"
+            placeholder="Enter your full name"
+            [class.is-invalid]="profileForm.get('fullName')?.invalid && profileForm.get('fullName')?.touched"
+          />
+          <div class="invalid-feedback" *ngIf="profileForm.get('fullName')?.hasError('required')">
+            Full name is required
+          </div>
+          <div class="invalid-feedback" *ngIf="profileForm.get('fullName')?.hasError('minlength')">
+            Name must be at least 3 characters
+          </div>
+        </div>
+
+        <!-- Email (Disabled) -->
+        <div class="col-12">
+          <label class="form-label">
+            <i class="fas fa-envelope"></i> Email
+          </label>
+          <input
+            type="email"
+            class="form-control"
+            formControlName="email"
+            placeholder="your.email@example.com"
+          />
+          <small class="text-muted">Email cannot be changed</small>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="form-actions">
+        <button
+          type="submit"
+          class="btn btn-primary"
+          [disabled]="profileForm.invalid || loading"
+        >
+          <span *ngIf="!loading">
+            <i class="fas fa-save"></i> Save Changes
+          </span>
+          <span *ngIf="loading">
+            <span class="spinner-border spinner-border-sm me-2"></span>Saving...
+          </span>
+        </button>
+
+        <button type="button" class="btn btn-outline-secondary" routerLink="/orders">
+          <i class="fas fa-box"></i> My Orders
+        </button>
+
+        <button type="button" class="btn btn-outline-danger" (click)="logout()">
+          <i class="fas fa-sign-out-alt"></i> Logout
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

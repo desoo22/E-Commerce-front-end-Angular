@@ -1,0 +1,49 @@
+<nav class="navbar" *ngIf="isAuthenticated$ | async as isAuthenticated; else notAuthenticated">
+  <div class="nav-left">
+    <a routerLink="/products" class="nav-link" routerLinkActive="active">
+      <i class="fas fa-shopping-bag"></i> Products
+    </a>
+    <a routerLink="/cart" class="nav-link" routerLinkActive="active">
+      <i class="fas fa-shopping-cart"></i> Cart
+      <span class="badge badge-pill badge-danger" *ngIf="(cartCount$ | async) as count">
+        <span *ngIf="count > 0">{{ count }}</span>
+      </span>
+    </a>
+    <a routerLink="/orders" class="nav-link" routerLinkActive="active">
+      <i class="fas fa-box"></i> Orders
+    </a>
+  </div>
+
+  <div class="nav-right">
+    <a routerLink="/profile" class="nav-link" routerLinkActive="active">
+      <i class="fas fa-user"></i> Profile
+    </a>
+    <button (click)="logout()" class="nav-button">
+      <i class="fas fa-sign-out-alt"></i> Logout
+    </button>
+  </div>
+</nav>
+
+<ng-template #notAuthenticated>
+  <nav class="navbar">
+    <div class="nav-left">
+      <a routerLink="/products" class="nav-link" routerLinkActive="active">
+        <i class="fas fa-shopping-bag"></i> Products
+      </a>
+      <a routerLink="/cart" class="nav-link" routerLinkActive="active">
+        <i class="fas fa-shopping-cart"></i> Cart
+        <span class="badge badge-pill badge-danger" *ngIf="(cartCount$ | async) as count">
+          <span *ngIf="count > 0">{{ count }}</span>
+        </span>
+      </a>
+    </div>
+
+    <div class="nav-right">
+      <a routerLink="/login" class="nav-link" routerLinkActive="active">
+        <i class="fas fa-sign-in-alt"></i> Login
+      </a>
+    </div>
+  </nav>
+</ng-template>
+
+<router-outlet />

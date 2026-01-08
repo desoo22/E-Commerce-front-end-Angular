@@ -1,0 +1,134 @@
+<div class="product-detail-container">
+  <!-- Loading State -->
+  <div *ngIf="loading" class="text-center py-5">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+    <p class="mt-3 text-muted">Loading product details...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error && !loading" class="alert alert-danger" role="alert">
+    <i class="fas fa-exclamation-circle"></i> {{ error }}
+    <button class="btn btn-sm btn-outline-danger ms-3" (click)="goBack()">
+      <i class="fas fa-arrow-left"></i> Back to Products
+    </button>
+  </div>
+
+  <!-- Product Details -->
+  <div *ngIf="product && !loading" class="product-detail">
+    <!-- Back Button -->
+    <button class="btn-back" (click)="goBack()">
+      <i class="fas fa-arrow-left"></i> Back to Products
+    </button>
+
+    <div class="row g-4">
+      <!-- Product Image -->
+      <div class="col-lg-6">
+        <div class="product-image">
+          <img
+            [src]="(product.images && product.images.length > 0 ? product.images[0] : 'https://via.placeholder.com/500')"
+            [alt]="product.name"
+            class="img-fluid"
+          />
+        </div>
+      </div>
+
+      <!-- Product Info -->
+      <div class="col-lg-6">
+        <div class="product-info">
+          <div class="product-category">
+            <i class="fas fa-tag"></i> {{ product.categoryId }}
+          </div>
+          
+          <h1 class="product-title">{{ product.name }}</h1>
+          
+          <div class="product-price">
+            <span class="current-price">
+              ${{ 
+                product.variants && product.variants.length > 0
+                  ? product.variants[selectedVariant].price.toFixed(2)
+                  : product.price.toFixed(2)
+              }}
+            </span>
+          </div>
+
+          <div class="product-description">
+            <h6><i class="fas fa-info-circle"></i> Description</h6>
+            <p>{{ product.description || 'No description available' }}</p>
+          </div>
+
+          <!-- Variants Selection -->
+          <div class="product-variants" *ngIf="product.variants && product.variants.length > 0">
+            <h6><i class="fas fa-sliders-h"></i> Select Variant</h6>
+            <div class="variants-list">
+              <button
+                *ngFor="let variant of product.variants; let i = index"
+                class="variant-btn"
+                [class.active]="selectedVariant === i"
+                [disabled]="variant.quantity === 0"
+                (click)="selectVariant(i)"
+              >
+                <div class="variant-info">
+                  <span class="variant-name">{{ variant.id }}</span>
+                  <span class="variant-price">${{ variant.price.toFixed(2) }}</span>
+                </div>
+                <div class="variant-stock" [class.out-of-stock]="variant.quantity === 0">
+                  {{ variant.quantity > 0 ? variant.quantity + ' in stock' : 'Out of stock' }}
+                </div>
+              </button>
+            </div>
+          </div>
+
+          <!-- Stock Info -->
+          <div class="product-stock">
+            <i class="fas fa-box"></i>
+            <span *ngIf="product.variants && product.variants.length > 0">
+              {{ product.variants[selectedVariant].quantity }} items available
+            </span>
+            <span *ngIf="!product.variants || product.variants.length === 0">
+              {{ product.stock }} items available
+            </span>
+          </div>
+
+          <!-- Quantity Selector -->
+          <div class="quantity-selector">
+            <h6><i class="fas fa-shopping-cart"></i> Quantity</h6>
+            <div class="quantity-controls">
+              <button class="qty-btn" (click)="decrementQuantity()" [disabled]="quantity <= 1">
+                <i class="fas fa-minus"></i>
+              </button>
+              <span class="qty-value">{{ quantity }}</span>
+              <button class="qty-btn" (click)="incrementQuantity()">
+                <i class="fas fa-plus"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="product-actions">
+            <button
+              class="btn btn-primary btn-lg"
+              (click)="addToCart()"
+              [disabled]="addingToCart || (product.variants && product.variants[selectedVariant].quantity === 0) || (!product.variants && product.stock === 0)"
+            >
+              <span *ngIf="!addingToCart && !addedToCart">
+                <i class="fas fa-cart-plus"></i> Add to Cart
+              </span>
+              <span *ngIf="addingToCart">
+                <span class="spinner-border spinner-border-sm me-2"></span>
+                Adding...
+              </span>
+              <span *ngIf="addedToCart">
+                <i class="fas fa-check"></i> Added to Cart!
+              </span>
+            </button>
+            <button class="btn btn-outline-primary btn-lg" (click)="goToCart()">
+              <i class="fas fa-shopping-cart"></i> View Cart
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,60 @@
+<div class="orders-container">
+  <div class="orders-header">
+    <h2><i class="fas fa-box"></i> My Orders</h2>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="text-center py-5">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+    <p class="mt-3 text-muted">Loading your orders...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error && !loading" class="alert alert-danger" role="alert">
+    <i class="fas fa-exclamation-circle"></i> {{ error }}
+  </div>
+
+  <!-- Orders Display -->
+  <div *ngIf="!loading && !error && orderData && orderData.items.length > 0" class="orders-content">
+    <div class="order-card">
+      <div class="order-header">
+        <div class="order-info">
+          <h5>Your Order Summary</h5>
+          <p class="text-muted mb-0">
+            <i class="fas fa-shopping-bag"></i> {{ orderData.items.length }} items
+          </p>
+        </div>
+      </div>
+
+      <!-- Order Items -->
+      <div class="order-items">
+        <h6 class="mb-3"><i class="fas fa-list"></i> Order Items</h6>
+        <div class="item-row" *ngFor="let item of orderData.items">
+          <div class="item-info">
+            <span class="item-name">{{ item.productName }}</span>
+            <span class="item-quantity">× {{ item.quantity }}</span>
+          </div>
+          <div class="item-price">{{ item.unitPrice | currency:'EGP' }}</div>
+        </div>
+      </div>
+
+      <!-- Order Total -->
+      <div class="order-total">
+        <span>Total Amount</span>
+        <strong>{{ orderData.totalPrice | currency:'EGP' }}</strong>
+      </div>
+    </div>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!loading && !error && (!orderData || !orderData.items || orderData.items.length === 0)" class="empty-state">
+    <i class="fas fa-box-open"></i>
+    <h4>No Orders Yet</h4>
+    <p>Start shopping and place your first order!</p>
+    <a routerLink="/products" class="btn btn-primary">
+      <i class="fas fa-shopping-bag"></i> Browse Products
+    </a>
+  </div>
+</div>
