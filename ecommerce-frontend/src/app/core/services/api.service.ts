@@ -13,9 +13,19 @@ export class ApiService {
 
   // Get request
   get<T>(endpoint: string): Observable<T> {
-    const token = this.getToken();
     const fullUrl = `${this.apiUrl}/${endpoint}`;
-    console.log(`🔍 GET ${endpoint} - Token: ${token ? '✅ exists' : '❌ missing'}`);
+    
+    // For public endpoints (product, category, etc without /all), don't send token
+    // Only protected endpoints like /all need token
+    const isProtectedEndpoint = endpoint.includes('/all') || 
+                                endpoint.includes('admin') ||
+                                endpoint.includes('user') ||
+                                endpoint.includes('order') ||
+                                endpoint.includes('cart');
+    
+    const token = isProtectedEndpoint ? this.getToken() : null;
+    
+    console.log(`🔍 GET ${endpoint} - Protected: ${isProtectedEndpoint}, Token: ${token ? '✅ exists' : '❌ missing'}`);
     console.log(`📍 Full URL: ${fullUrl}`);
     if (token) {
       console.log(`🔑 Token: ${token.substring(0, 100)}...`);
@@ -31,16 +41,21 @@ export class ApiService {
   // POST request
   post<T>(endpoint: string, data: any): Observable<T> {
     const token = this.getToken();
-    console.log(`🔍 POST ${endpoint} - Token: ${token ? '✅ exists' : '❌ missing'}`);
+    console.log(`🔍 POST ${endpoint} - Token: ${token ? '✅ exists (' + token.substring(0, 20) + '...)' : '❌ missing'}`);
     
-    // For FormData, don't set Content-Type header (browser will set it with boundary)
     let headers = new HttpHeaders();
+    
+    // ALWAYS add Authorization if token exists
     if (token) {
       headers = headers.set('Authorization', `Bearer ${token}`);
+      console.log('✅ Authorization header added');
+    } else {
+      console.warn('⚠️ No token found - request will likely fail with 401');
     }
     
-    // If data is FormData, don't set Content-Type
+    // If data is FormData, don't set Content-Type (browser will set it automatically with boundary)
     if (data instanceof FormData) {
+      console.log('📤 Sending FormData - letting browser set Content-Type');
       return this.http.post<T>(`${this.apiUrl}/${endpoint}`, data, { headers });
     }
     
@@ -52,8 +67,24 @@ export class ApiService {
   // PUT request
   put<T>(endpoint: string, data: any): Observable<T> {
     const token = this.getToken();
-    console.log(`🔍 PUT ${endpoint} - Token: ${token ? '✅ exists' : '❌ missing'}`);
-    const headers = this.getHeaders(token);
+    console.log(`🔍 PUT ${endpoint} - Token: ${token ? '✅ exists (' + token.substring(0, 20) + '...)' : '❌ missing'}`);
+    
+    let headers = new HttpHeaders();
+    
+    // ALWAYS add Authorization if token exists
+    if (token) {
+      headers = headers.set('Authorization', `Bearer ${token}`);
+      console.log('✅ Authorization header added');
+    }
+    
+    // If data is FormData, don't set Content-Type (browser will set it automatically)
+    if (data instanceof FormData) {
+      console.log('📤 Sending FormData - letting browser set Content-Type');
+      return this.http.put<T>(`${this.apiUrl}/${endpoint}`, data, { headers });
+    }
+    
+    // Otherwise set Content-Type to application/json
+    headers = headers.set('Content-Type', 'application/json');
     return this.http.put<T>(`${this.apiUrl}/${endpoint}`, data, { headers });
   }
 
@@ -69,6 +100,10 @@ export class ApiService {
   // Get token from localStorage
   private getToken(): string | null {
     const token = localStorage.getItem('accessToken');
+    if (!token) {
+      console.warn('⚠️ No accessToken in localStorage');
+      console.log('Available keys in localStorage:', Object.keys(localStorage));
+    }
     return token;
   }
 

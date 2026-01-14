@@ -1,0 +1,103 @@
+<div class="admin-products">
+  <div class="header">
+    <h1><i class="fas fa-box"></i> Product Management</h1>
+    <button class="btn btn-primary" (click)="addProduct()">
+      <i class="fas fa-plus"></i> Add Product
+    </button>
+  </div>
+
+  <div *ngIf="showAddForm" class="product-form-overlay">
+    <div class="product-form">
+      <h2>{{ editingProduct ? 'Edit Product' : 'Add New Product' }}</h2>
+      <form (ngSubmit)="saveProduct()">
+        <div class="form-group">
+          <label>Product Name</label>
+          <input type="text" [(ngModel)]="newProduct.name" name="name" required class="form-control" placeholder="Product name">
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <textarea [(ngModel)]="newProduct.description" name="description" required class="form-control" placeholder="Product description"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Category Name</label>
+          <input type="text" [(ngModel)]="newProduct.categoryName" name="categoryName" required class="form-control" placeholder="e.g., Electronics">
+        </div>
+        <div class="form-group">
+          <label>Price</label>
+          <input type="number" [(ngModel)]="newProduct.price" name="price" required class="form-control" step="0.01" placeholder="Product price">
+        </div>
+        <div class="form-group">
+          <label>Variant Price (Optional)</label>
+          <input type="number" [(ngModel)]="newProduct.variantPrice" name="variantPrice" class="form-control" step="0.01" placeholder="Leave empty to use product price">
+        </div>
+        <div class="form-group">
+          <label>Variant Quantity</label>
+          <input type="number" [(ngModel)]="newProduct.variantQuantity" name="variantQuantity" class="form-control" placeholder="Stock quantity (default: 10)">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Color</label>
+            <input type="text" [(ngModel)]="newProduct.variantColor" name="variantColor" class="form-control" placeholder="e.g., Red">
+          </div>
+          <div class="form-group">
+            <label>Size</label>
+            <input type="text" [(ngModel)]="newProduct.variantSize" name="variantSize" class="form-control" placeholder="e.g., M">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Product Images</label>
+          <input type="file" 
+                 multiple 
+                 accept="image/*" 
+                 (change)="onImageSelected($event)" 
+                 class="form-control"
+                 #imageInput>
+          <small class="form-text text-muted">Select images from your device or gallery. Max 5MB per image.</small>
+        </div>
+
+        <!-- Image Previews -->
+        <div class="image-previews" *ngIf="previewImages.length > 0">
+          <h4>Selected Images:</h4>
+          <div class="preview-grid">
+            <div class="preview-item" *ngFor="let preview of previewImages; let i = index">
+              <img [src]="preview" alt="Preview">
+              <button type="button" class="btn-remove" (click)="selectedImages.splice(i, 1); previewImages.splice(i, 1)">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-success">Save Product</button>
+          <button type="button" class="btn btn-secondary" (click)="cancelEdit()">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="loading">Loading products...</div>
+
+  <div class="products-grid" *ngIf="!loading && products.length > 0">
+    <div class="product-card" *ngFor="let product of products">
+      <img [src]="(product.images?.[0]?.imageData || product.images?.[0]?.imageUrl) || 'assets/placeholder.png'" [alt]="product.description">
+      <div class="product-info">
+        <p class="category">{{ product.categoryName }}</p>
+        <p class="description">{{ product.description }}</p>
+        <p class="price">${{ product.price }}</p>
+      </div>
+      <div class="product-actions">
+        <button class="btn btn-sm btn-warning" (click)="editProduct(product)">
+          <i class="fas fa-edit"></i> Edit
+        </button>
+        <button class="btn btn-sm btn-danger" (click)="deleteProduct(product.id)">
+          <i class="fas fa-trash"></i> Delete
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="!loading && products.length === 0" class="no-products">
+    <p>No products yet. Click "Add Product" to create one!</p>
+  </div>
+</div>

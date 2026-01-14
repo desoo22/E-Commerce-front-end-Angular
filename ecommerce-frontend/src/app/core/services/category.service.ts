@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, of, BehaviorSubject } from 'rxjs';
+import { tap, shareReplay } from 'rxjs/operators';
 import { ApiService } from './api.service';
 
 export interface Category {
@@ -17,11 +18,44 @@ export interface NewCategoryDto {
   providedIn: 'root'
 })
 export class CategoryService {
+  private categoriesCache$ = new BehaviorSubject<Category[] | null>(null);
+  private categoriesObservable$: Observable<Category[]> | null = null;
+
   constructor(private apiService: ApiService) {}
 
-  // Get all categories
+  // Get all categories with caching
   getCategories(): Observable<Category[]> {
-    return this.apiService.get<Category[]>('category');
+    // If we have cached data, return it immediately
+    if (this.categoriesCache$.value) {
+      console.log('📦 Returning cached categories:', this.categoriesCache$.value.length);
+      return of(this.categoriesCache$.value);
+    }
+
+    // If there's an ongoing request, return it
+    if (this.categoriesObservable$) {
+      console.log('📦 Returning ongoing categories request');
+      return this.categoriesObservable$;
+    }
+
+    // Create new request with caching
+    console.log('📦 Fetching categories from API...');
+    this.categoriesObservable$ = this.apiService.get<Category[]>('category').pipe(
+      tap(categories => {
+        console.log('✅ Categories fetched, caching:', categories.length, 'items');
+        this.categoriesCache$.next(categories);
+        this.categoriesObservable$ = null;
+      }),
+      shareReplay(1)
+    );
+
+    return this.categoriesObservable$;
+  }
+
+  // Clear cache
+  clearCache(): void {
+    console.log('🗑️ Clearing categories cache');
+    this.categoriesCache$.next(null);
+    this.categoriesObservable$ = null;
   }
 
   // Get category by ID

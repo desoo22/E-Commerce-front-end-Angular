@@ -28,7 +28,7 @@
         <div class="product-image">
           <img
             [src]="(product.images && product.images.length > 0 ? product.images[0] : 'https://via.placeholder.com/500')"
-            [alt]="product.name"
+              [alt]="product.description"
             class="img-fluid"
           />
         </div>
@@ -38,10 +38,10 @@
       <div class="col-lg-6">
         <div class="product-info">
           <div class="product-category">
-            <i class="fas fa-tag"></i> {{ product.categoryId }}
+            <i class="fas fa-tag"></i> {{ product.categoryName }}
           </div>
           
-          <h1 class="product-title">{{ product.name }}</h1>
+           <h1 class="product-title">{{ product.description }}</h1>
           
           <div class="product-price">
             <span class="current-price">
@@ -86,9 +86,6 @@
             <span *ngIf="product.variants && product.variants.length > 0">
               {{ product.variants[selectedVariant].quantity }} items available
             </span>
-            <span *ngIf="!product.variants || product.variants.length === 0">
-              {{ product.stock }} items available
-            </span>
           </div>
 
           <!-- Quantity Selector -->
@@ -110,7 +107,7 @@
             <button
               class="btn btn-primary btn-lg"
               (click)="addToCart()"
-              [disabled]="addingToCart || (product.variants && product.variants[selectedVariant].quantity === 0) || (!product.variants && product.stock === 0)"
+                [disabled]="addingToCart || (product.variants && product.variants[selectedVariant].quantity === 0)"
             >
               <span *ngIf="!addingToCart && !addedToCart">
                 <i class="fas fa-cart-plus"></i> Add to Cart

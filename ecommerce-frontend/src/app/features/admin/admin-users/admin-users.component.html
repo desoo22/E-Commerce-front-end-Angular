@@ -1,0 +1,66 @@
+<div class="admin-users">
+  <div class="header">
+    <h1><i class="fas fa-users"></i> User Management</h1>
+    <p class="subtitle">Promote users to Admin or demote Admins to regular users</p>
+  </div>
+
+  <div *ngIf="message" class="alert" [class.alert-success]="messageType === 'success'" [class.alert-error]="messageType === 'error'">
+    {{ message }}
+  </div>
+
+  <div class="actions-container">
+    <div class="action-card">
+      <div class="card-header">
+        <i class="fas fa-arrow-up"></i>
+        <h2>Promote to Admin</h2>
+      </div>
+      <p>Grant admin privileges to a user by entering their email address.</p>
+      <form (ngSubmit)="promoteUser()">
+        <div class="form-group">
+          <label>User Email</label>
+          <input 
+            type="email" 
+            [(ngModel)]="promoteEmail" 
+            name="promoteEmail" 
+            placeholder="user@example.com"
+            required 
+            class="form-control">
+        </div>
+        <button type="submit" class="btn btn-success">
+          <i class="fas fa-user-shield"></i> Promote to Admin
+        </button>
+      </form>
+    </div>
+
+    <div class="action-card">
+      <div class="card-header">
+        <i class="fas fa-arrow-down"></i>
+        <h2>Demote to User</h2>
+      </div>
+      <p>Remove admin privileges from an admin user.</p>
+      <form (ngSubmit)="demoteUser()">
+        <div class="form-group">
+          <label>Admin Email</label>
+          <input 
+            type="email" 
+            [(ngModel)]="demoteEmail" 
+            name="demoteEmail" 
+            placeholder="admin@example.com"
+            required 
+            class="form-control">
+        </div>
+        <button type="submit" class="btn btn-warning">
+          <i class="fas fa-user"></i> Demote to User
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <div class="info-box">
+    <i class="fas fa-info-circle"></i>
+    <div>
+      <strong>Owner Privileges:</strong> Only Owner accounts can promote/demote users. 
+      Admins have full control over products, categories, and orders, but cannot manage user roles.
+    </div>
+  </div>
+</div>

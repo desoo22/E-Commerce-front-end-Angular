@@ -31,10 +31,10 @@ export class OrderService {
     return this.apiService.get<Order[]>('order');
   }
 
-  // Get user's orders
-  getUserOrders(userId: number): Observable<any> {
-  return this.apiService.get<any>(`user/orders`); 
-}
+  // Get user's orders - uses /api/user/orders endpoint
+  getUserOrders(): Observable<any> {
+    return this.apiService.get<any>('user/orders');
+  }
 
   // Update order status (Admin only)
   updateOrderStatus(orderId: number, status: string): Observable<any> {

@@ -1,5 +1,5 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
+import { CommonModule, CurrencyPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
@@ -21,48 +21,60 @@ interface UserOrderDto {
 @Component({
   selector: 'app-orders',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, CurrencyPipe],
   templateUrl: './orders.component.html',
   styleUrls: ['./orders.component.css']
 })
 export class OrdersComponent implements OnInit {
-  orderData: UserOrderDto | null = null;
+  orders: any[] = [];
   loading = true;
   error = '';
 
-  constructor(
-    private apiService: ApiService,
-    private authService: AuthService,
-    private router: Router
-  ) {}
+  private apiService = inject(ApiService);
+  private authService = inject(AuthService);
+  private router = inject(Router);
+  private cdr = inject(ChangeDetectorRef);
+
+  constructor() {}
 
   ngOnInit(): void {
     console.log('🔍 Orders Component Init');
+    this.loadOrders();
+  }
+
+  private loadOrders(): void {
+    this.loading = true;
+    this.orders = [];
     
-    // Set loading to false immediately and show empty orders
-    this.loading = false;
-    this.orderData = null;
+    // Check user role to determine which endpoint to use
+    const userRole = this.authService.getUserRole();
+    const isAdminOrOwner = userRole === 'Admin' || userRole === 'Owner';
     
-    // Then load the actual orders data
-    this.apiService.get<any>('user/orders').subscribe({
-      next: (data) => {
+    // Admin/Owner: get all orders, User: get only their orders
+    const endpoint = isAdminOrOwner ? 'order' : 'user/orders';
+    
+    console.log(`🔍 Loading orders from: ${endpoint}, Role: ${userRole}`);
+    
+    // Load the actual orders data
+    this.apiService.get<any>(endpoint).subscribe({
+      next: (data: any) => {
         console.log('✅ Orders response:', data);
         
-        if (data && data.items && Array.isArray(data.items)) {
-          this.orderData = {
-            items: data.items.map((item: any) => ({
-              productVariantId: item.productVariantId || item.ProductVariantId || 0,
-              productName: item.productName || item.ProductName || 'Product',
-              quantity: item.quantity || item.Quantity || 0,
-              unitPrice: item.unitPrice || item.UnitPrice || 0
-            })),
-            totalPrice: data.totalPrice || data.TotalPrice || 0
-          };
+        // Handle different response formats
+        if (data && Array.isArray(data)) {
+          // If data is already an array
+          this.orders = data;
+        } else if (data && data.items && Array.isArray(data.items)) {
+          // If data has items property
+          this.orders = data.items;
         } else {
-          this.orderData = null;
+          this.orders = [];
         }
+        
+        this.loading = false;
+        this.cdr.markForCheck();
       },
-      error: (err) => {
+      error: (err: any) => {
         console.error('❌ Orders error:', err);
         
         if (err.status === 401) {
@@ -71,7 +83,9 @@ export class OrdersComponent implements OnInit {
         }
         
         this.error = 'Failed to load orders. Please try again.';
+        this.loading = false;
+        this.cdr.markForCheck();
       }
     });
   }
-}
+  }

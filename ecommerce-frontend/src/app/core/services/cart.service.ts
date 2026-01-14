@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { Observable, BehaviorSubject, of } from 'rxjs';
+import { BehaviorSubject, Observable, of } from 'rxjs';
 import { tap, map, catchError } from 'rxjs/operators';
 import { ApiService } from './api.service';
 import { AuthService } from './auth.service';
@@ -26,6 +26,7 @@ export interface CheckOutDto {
   street: string;
   building: string;
   apartment: string;
+  neighborhood: string;
 }
 
 @Injectable({
@@ -51,17 +52,26 @@ export class CartService {
   }
 
   private readGuest(): CartDto {
-    const raw = localStorage.getItem(this.GUEST_KEY);
-    const parsed = raw ? JSON.parse(raw) as CartDto : { items: [], totalPrice: 0, totalQuantity: 0 };
-    parsed.totalQuantity = parsed.items.reduce((a, i) => a + i.quantity, 0);
-    parsed.totalPrice = parsed.items.reduce((a, i) => a + i.price * i.quantity, 0);
-    return parsed;
+    try {
+      const raw = localStorage.getItem(this.GUEST_KEY);
+      const parsed = raw ? JSON.parse(raw) as CartDto : { items: [], totalPrice: 0, totalQuantity: 0 };
+      parsed.totalQuantity = parsed.items.reduce((a, i) => a + i.quantity, 0);
+      parsed.totalPrice = parsed.items.reduce((a, i) => a + i.price * i.quantity, 0);
+      return parsed;
+    } catch (e) {
+      console.warn('Failed to read guest cart from localStorage:', e);
+      return { items: [], totalPrice: 0, totalQuantity: 0 };
+    }
   }
 
   private writeGuest(cart: CartDto) {
-    cart.totalQuantity = cart.items.reduce((a, i) => a + i.quantity, 0);
-    cart.totalPrice = cart.items.reduce((a, i) => a + i.price * i.quantity, 0);
-    localStorage.setItem(this.GUEST_KEY, JSON.stringify(cart));
+    try {
+      cart.totalQuantity = cart.items.reduce((a, i) => a + i.quantity, 0);
+      cart.totalPrice = cart.items.reduce((a, i) => a + i.price * i.quantity, 0);
+      localStorage.setItem(this.GUEST_KEY, JSON.stringify(cart));
+    } catch (e) {
+      console.warn('Failed to write guest cart to localStorage:', e);
+    }
     this.cartSubject.next(cart);
   }
 
@@ -84,15 +94,17 @@ export class CartService {
 
   loadCart(): void {
     if (!this.isAuthed()) {
-      this.cartSubject.next(this.readGuest());
+      const guest = this.readGuest();
+      this.cartSubject.next(guest);
       return;
     }
-    this.getCart().subscribe({
-      next: cart => this.cartSubject.next(cart),
-      error: err => {
-        console.error('❌ Error loading cart:', err);
-        // Fallback to guest cart on auth error
-        this.cartSubject.next(this.readGuest());
+    this.apiService.get<any>('cart').subscribe({
+      next: (data) => {
+        const mapped = this.mapServerCart(data);
+        this.cartSubject.next(mapped);
+      },
+      error: () => {
+        this.cartSubject.next({ items: [], totalPrice: 0, totalQuantity: 0 });
       }
     });
   }
@@ -101,12 +113,29 @@ export class CartService {
     if (!this.isAuthed()) {
       return of(this.readGuest());
     }
-    
     return this.apiService.get<any>('cart').pipe(
-      map(s => this.mapServerCart(s)),
-      catchError(err => {
-        console.error('❌ Cart API error:', err);
-        // Fallback to guest cart on error
+      map(data => this.mapServerCart(data)),
+      catchError(() => of({ items: [], totalPrice: 0, totalQuantity: 0 }))
+    );
+  }
+
+  /**
+   * Move guest cart items to the authenticated user's cart on the server
+   */
+  syncGuestCartToUser(): Observable<CartDto> {
+    const guest = this.readGuest();
+    if (!guest.items.length) {
+      return this.getCart();
+    }
+
+    return this.apiService.post<any>('cart/guest-to-user', guest).pipe(
+      map(data => this.mapServerCart(data)),
+      tap(cart => {
+        this.cartSubject.next(cart);
+        localStorage.removeItem(this.GUEST_KEY);
+      }),
+      catchError(() => {
+        // If sync fails, keep guest cart but don't break login flow
         return of(this.readGuest());
       })
     );
@@ -114,62 +143,116 @@ export class CartService {
 
   addItem(item: CartItem): Observable<CartDto> {
     if (!this.isAuthed()) {
-      const cart = this.readGuest();
-      const key = item.variantId ?? item.productId;
-      const existing = cart.items.find(i => (i.variantId ?? i.productId) === key);
+      const guest = this.readGuest();
+      // Create unique key: use variantId if exists, otherwise productId
+      const itemKey = item.variantId ?? item.productId;
+      const existing = guest.items.find(i => {
+        const existingKey = i.variantId ?? i.productId;
+        return existingKey === itemKey;
+      });
+      
       if (existing) {
         existing.quantity += item.quantity;
       } else {
-        cart.items.push({ ...item });
+        guest.items.push(item);
       }
-      this.writeGuest(cart);
-      return of(cart);
+      this.writeGuest(guest);
+      return of(guest);
     }
-
-    const dto = {
+    return this.apiService.post<any>('cart/items', {
       productVariantId: item.variantId ?? item.productId,
-      productName: item.productName ?? '',
       quantity: item.quantity,
+      productName: item.productName,
       unitPrice: item.price
-    };
-    return this.apiService.post<any>('cart/items', dto).pipe(
-      map(s => this.mapServerCart(s)),
-      tap(c => this.cartSubject.next(c))
+    }).pipe(
+      map(data => this.mapServerCart(data)),
+      tap(cart => this.cartSubject.next(cart))
     );
   }
 
   removeItem(item: CartItem): Observable<CartDto> {
     if (!this.isAuthed()) {
-      const cart = this.readGuest();
-      const key = item.variantId ?? item.productId;
-      const existing = cart.items.find(i => (i.variantId ?? i.productId) === key);
-      if (existing) {
-        if (existing.quantity > item.quantity) {
-          existing.quantity -= item.quantity;
+      const guest = this.readGuest();
+      const itemKey = item.variantId ?? item.productId;
+      guest.items = guest.items.filter(i => {
+        const existingKey = i.variantId ?? i.productId;
+        return existingKey !== itemKey;
+      });
+      this.writeGuest(guest);
+      return of(guest);
+    }
+    return this.apiService.delete<any>('cart/items', {
+      productVariantId: item.variantId ?? item.productId,
+      quantity: item.quantity || 1,
+      productName: item.productName,
+      unitPrice: item.price
+    }).pipe(
+      map(data => this.mapServerCart(data)),
+      tap(cart => this.cartSubject.next(cart))
+    );
+  }
+
+  updateQuantity(item: CartItem, newQuantity: number): Observable<CartDto> {
+    if (!this.isAuthed()) {
+      const guest = this.readGuest();
+      const itemKey = item.variantId ?? item.productId;
+      const existingItem = guest.items.find(i => {
+        const existingKey = i.variantId ?? i.productId;
+        return existingKey === itemKey;
+      });
+      
+      if (existingItem) {
+        if (newQuantity <= 0) {
+          guest.items = guest.items.filter(i => {
+            const existingKey = i.variantId ?? i.productId;
+            return existingKey !== itemKey;
+          });
         } else {
-          cart.items = cart.items.filter(i => (i.variantId ?? i.productId) !== key);
+          existingItem.quantity = newQuantity;
         }
       }
-      this.writeGuest(cart);
-      return of(cart);
+      this.writeGuest(guest);
+      return of(guest);
     }
+    // Authenticated: backend supports add/remove with quantities, but not direct update.
+    // Compute delta and call appropriate endpoint.
+    const currentCart = this.getCartValue();
+    const currentItem = currentCart?.items.find(i => (i.variantId ?? i.productId) === (item.variantId ?? item.productId));
+    const currentQty = currentItem?.quantity ?? 0;
+    const delta = newQuantity - currentQty;
 
-    const dto = {
-      productVariantId: item.variantId ?? item.productId,
-      productName: item.productName ?? '',
-      quantity: item.quantity,
-      unitPrice: item.price
-    };
-    return this.apiService.delete<any>('cart/items', dto).pipe(
-      map(s => this.mapServerCart(s)),
-      tap(c => this.cartSubject.next(c))
-    );
+    if (delta > 0) {
+      // Increase quantity
+      return this.apiService.post<any>('cart/items', {
+        productVariantId: item.variantId ?? item.productId,
+        quantity: delta,
+        productName: item.productName,
+        unitPrice: item.price
+      }).pipe(
+        map(data => this.mapServerCart(data)),
+        tap(cart => this.cartSubject.next(cart))
+      );
+    } else if (delta < 0) {
+      // Decrease quantity
+      return this.apiService.delete<any>('cart/items', {
+        productVariantId: item.variantId ?? item.productId,
+        quantity: Math.abs(delta),
+        productName: item.productName,
+        unitPrice: item.price
+      }).pipe(
+        map(data => this.mapServerCart(data)),
+        tap(cart => this.cartSubject.next(cart))
+      );
+    } else {
+      // No change
+      return of(currentCart ?? { items: [], totalPrice: 0, totalQuantity: 0 });
+    }
   }
 
   clearCart(): Observable<any> {
     if (!this.isAuthed()) {
       this.writeGuest({ items: [], totalPrice: 0, totalQuantity: 0 });
-      return of(null);
+      return of({});
     }
     return this.apiService.delete('cart/clear').pipe(
       tap(() => this.cartSubject.next({ items: [], totalPrice: 0, totalQuantity: 0 }))
@@ -177,11 +260,70 @@ export class CartService {
   }
 
   checkout(dto: CheckOutDto): Observable<any> {
+    return this.apiService.post('cart/checkout', dto).pipe(
+      tap(() => {
+        this.cartSubject.next({ items: [], totalPrice: 0, totalQuantity: 0 });
+        if (!this.isAuthed()) {
+          localStorage.removeItem(this.GUEST_KEY);
+        }
+      })
+    );
+  }
+
+  increaseQuantity(item: CartItem): Observable<CartDto> {
     if (!this.isAuthed()) {
-      return of({ error: 'login_required' });
+      const guest = this.readGuest();
+      const itemKey = item.variantId ?? item.productId;
+      const existing = guest.items.find(i => {
+        const existingKey = i.variantId ?? i.productId;
+        return existingKey === itemKey;
+      });
+      if (existing) {
+        existing.quantity++;
+      }
+      this.writeGuest(guest);
+      return of(guest);
     }
-    return this.apiService.post('checkout', dto).pipe(
-      tap(() => this.cartSubject.next({ items: [], totalPrice: 0, totalQuantity: 0 }))
+    return this.apiService.post<any>('cart/items/increase', {
+      productVariantId: item.variantId ?? item.productId,
+      quantity: 1,
+      productName: item.productName,
+      unitPrice: item.price
+    }).pipe(
+      map(data => this.mapServerCart(data)),
+      tap(cart => this.cartSubject.next(cart))
+    );
+  }
+
+  decreaseQuantity(item: CartItem): Observable<CartDto> {
+    if (!this.isAuthed()) {
+      const guest = this.readGuest();
+      const itemKey = item.variantId ?? item.productId;
+      const existing = guest.items.find(i => {
+        const existingKey = i.variantId ?? i.productId;
+        return existingKey === itemKey;
+      });
+      if (existing) {
+        if (existing.quantity > 1) {
+          existing.quantity--;
+        } else {
+          guest.items = guest.items.filter(i => {
+            const k = i.variantId ?? i.productId;
+            return k !== itemKey;
+          });
+        }
+      }
+      this.writeGuest(guest);
+      return of(guest);
+    }
+    return this.apiService.post<any>('cart/items/decrease', {
+      productVariantId: item.variantId ?? item.productId,
+      quantity: 1,
+      productName: item.productName,
+      unitPrice: item.price
+    }).pipe(
+      map(data => this.mapServerCart(data)),
+      tap(cart => this.cartSubject.next(cart))
     );
   }
 

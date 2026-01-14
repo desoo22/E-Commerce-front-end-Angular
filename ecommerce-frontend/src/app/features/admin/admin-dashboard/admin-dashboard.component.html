@@ -1,0 +1,26 @@
+<div class="admin-container">
+  <aside class="admin-sidebar">
+    <h2><i class="fas fa-user-shield"></i> Admin Panel</h2>
+    <nav class="admin-nav">
+      <a routerLink="/admin/products" routerLinkActive="active" class="admin-nav-link">
+        <i class="fas fa-box"></i> Manage Products
+      </a>
+      <a routerLink="/admin/categories" routerLinkActive="active" class="admin-nav-link">
+        <i class="fas fa-tags"></i> Manage Categories
+      </a>
+      <a routerLink="/admin/orders" routerLinkActive="active" class="admin-nav-link">
+        <i class="fas fa-shopping-cart"></i> Manage Orders
+      </a>
+      <a *ngIf="(currentUser$ | async)?.role === 'Owner'" 
+         routerLink="/admin/users" 
+         routerLinkActive="active" 
+         class="admin-nav-link">
+        <i class="fas fa-users"></i> Manage Users
+      </a>
+    </nav>
+  </aside>
+  
+  <main class="admin-content">
+    <router-outlet></router-outlet>
+  </main>
+</div>

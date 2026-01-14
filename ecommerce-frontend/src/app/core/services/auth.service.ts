@@ -34,6 +34,9 @@ export class AuthService {
   private isAuthenticatedSubject = new BehaviorSubject<boolean>(this.isTokenValid());
   public isAuthenticated$ = this.isAuthenticatedSubject.asObservable();
 
+  private currentUserSubject = new BehaviorSubject<{ userId: number | null; role: string | null } | null>(this.getCurrentUserFromStorage());
+  public currentUser$ = this.currentUserSubject.asObservable();
+
   constructor(private apiService: ApiService) {}
 
   // Request OTP
@@ -43,17 +46,26 @@ export class AuthService {
 
   // Verify OTP and login
   verifyOtp(dto: VerifyOtpDto): Observable<any> {
+    console.log('🔐 Calling verifyOtp API...');
     return this.apiService.post<any>('auth/verify-otp', dto).pipe(
         tap((response: any) => {
             console.log('✅ Verify OTP Response:', response);
+            console.log('🔍 Extracting tokens from response...');
             const accessToken = response.accessToken || response.token || '';
             const refreshToken = response.refreshToken || '';
             const userId = response.userId ?? response.id ?? null;
             const role = response.role || '';
+            
+            console.log('🔑 Access Token:', accessToken ? accessToken.substring(0, 30) + '...' : 'MISSING');
+            console.log('👤 User ID:', userId, 'Role:', role);
 
             this.storeTokens({ accessToken, refreshToken, userId, role });
             this.isAuthenticatedSubject.next(true);
-            console.log('✅ Authentication complete');
+            console.log('✅ Authentication complete - token stored in localStorage');
+            
+            // Verify it's actually saved
+            const saved = localStorage.getItem('accessToken');
+            console.log('✅ Token verification - saved:', saved ? 'YES (' + saved.substring(0, 30) + '...)' : 'NO');
         })
     );
   }
@@ -99,12 +111,16 @@ export class AuthService {
       localStorage.setItem('userId', userId.toString());
     }
     localStorage.setItem('userRole', role);
+    
+    this.currentUserSubject.next({ userId, role });
   }
 
   // Clear tokens from localStorage
   private clearTokens(): void {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
+    
+    this.currentUserSubject.next(null);
     localStorage.removeItem('userId');
     localStorage.removeItem('userRole');
   }
@@ -145,5 +161,17 @@ export class AuthService {
       console.error('❌ Error decoding JWT:', error);
       return null;
     }
+  }
+
+  // Get current user from storage
+  private getCurrentUserFromStorage(): { userId: number | null; role: string | null } | null {
+    const userId = this.getUserId();
+    const role = this.getUserRole();
+    return (userId !== null || role !== null) ? { userId, role } : null;
+  }
+
+  // Get current user synchronously
+  getCurrentUser(): { userId: number | null; role: string | null } | null {
+    return this.currentUserSubject.value;
   }
 }

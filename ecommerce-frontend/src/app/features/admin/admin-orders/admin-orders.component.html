@@ -1,0 +1,47 @@
+<div class="admin-orders">
+  <div class="header">
+    <h1><i class="fas fa-shopping-cart"></i> Order Management</h1>
+  </div>
+
+  <div *ngIf="loading" class="loading">Loading orders...</div>
+
+  <table class="orders-table" *ngIf="!loading && orders.length > 0">
+    <thead>
+      <tr>
+        <th>Order ID</th>
+        <th>User</th>
+        <th>Total</th>
+        <th>Status</th>
+        <th>Date</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let order of orders">
+        <td>#{{ order.id }}</td>
+        <td>{{ order.userId }}</td>
+        <td>${{ order.totalAmount }}</td>
+        <td>
+          <span class="status-badge" [class]="'status-' + order.status.toLowerCase()">
+            {{ order.status }}
+          </span>
+        </td>
+        <td>{{ order.createdAt | date:'short' }}</td>
+        <td>
+          <select class="status-select" [value]="order.status" (change)="updateStatus(order.id, $any($event.target).value)">
+            <option value="Pending">Pending</option>
+            <option value="Processing">Processing</option>
+            <option value="Shipped">Shipped</option>
+            <option value="Delivered">Delivered</option>
+            <option value="Cancelled">Cancelled</option>
+          </select>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div *ngIf="!loading && orders.length === 0" class="empty-state">
+    <i class="fas fa-shopping-cart fa-3x"></i>
+    <p>No orders yet.</p>
+  </div>
+</div>

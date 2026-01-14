@@ -28,10 +28,43 @@
     transition: all 0.2s ease;
     cursor: pointer;
     white-space: nowrap;
+    position: relative;
 
     &:hover {
       background: #f0f0f0;
       color: #0066cc;
+    }
+
+    &.nav-link-admin {
+      color: #667eea;
+      font-weight: 600;
+      
+      &:hover {
+        background: rgba(102, 126, 234, 0.1);
+        color: #5568d3;
+      }
+      
+      &.active {
+        background: rgba(102, 126, 234, 0.15);
+        color: #5568d3;
+      }
+    }
+  }
+
+  .user-role {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 6px 12px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    
+    i {
+      font-size: 14px;
     }
   }
 

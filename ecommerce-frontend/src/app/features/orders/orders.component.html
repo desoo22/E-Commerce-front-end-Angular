@@ -17,39 +17,44 @@
   </div>
 
   <!-- Orders Display -->
-  <div *ngIf="!loading && !error && orderData && orderData.items.length > 0" class="orders-content">
-    <div class="order-card">
+  <div *ngIf="!loading && !error && orders.length > 0" class="orders-content">
+    <div class="order-card" *ngFor="let order of orders">
       <div class="order-header">
         <div class="order-info">
-          <h5>Your Order Summary</h5>
+          <h5>Order #{{ order.id || order.Id }}</h5>
           <p class="text-muted mb-0">
-            <i class="fas fa-shopping-bag"></i> {{ orderData.items.length }} items
+            <i class="fas fa-calendar"></i> {{ (order.date || order.Date) | date:'short' }}
           </p>
+        </div>
+        <div class="order-status">
+          <span [ngClass]="'badge badge-' + ((order.status || order.Status) === 'PendingPayment' ? 'warning' : (order.status || order.Status) === 'Completed' ? 'success' : 'info')">
+            {{ order.status || order.Status }}
+          </span>
         </div>
       </div>
 
       <!-- Order Items -->
-      <div class="order-items">
+      <div class="order-items" *ngIf="order.items && order.items.length > 0">
         <h6 class="mb-3"><i class="fas fa-list"></i> Order Items</h6>
-        <div class="item-row" *ngFor="let item of orderData.items">
+        <div class="item-row" *ngFor="let item of order.items">
           <div class="item-info">
-            <span class="item-name">{{ item.productName }}</span>
-            <span class="item-quantity">× {{ item.quantity }}</span>
+            <span class="item-name">{{ item.productName || item.ProductName }}</span>
+            <span class="item-quantity">× {{ item.quantity || item.Quantity }}</span>
           </div>
-          <div class="item-price">{{ item.unitPrice | currency:'EGP' }}</div>
+          <div class="item-price">{{ (item.unitPrice || item.UnitPrice) | currency:'EGP' }}</div>
         </div>
       </div>
 
       <!-- Order Total -->
       <div class="order-total">
         <span>Total Amount</span>
-        <strong>{{ orderData.totalPrice | currency:'EGP' }}</strong>
+        <strong>{{ (order.totalPrice || order.TotalPrice) | currency:'EGP' }}</strong>
       </div>
     </div>
   </div>
 
   <!-- Empty State -->
-  <div *ngIf="!loading && !error && (!orderData || !orderData.items || orderData.items.length === 0)" class="empty-state">
+  <div *ngIf="!loading && !error && orders.length === 0" class="empty-state">
     <i class="fas fa-box-open"></i>
     <h4>No Orders Yet</h4>
     <p>Start shopping and place your first order!</p>

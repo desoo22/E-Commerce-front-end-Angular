@@ -1,39 +1,42 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
+import { CommonModule, CurrencyPipe } from '@angular/common';
 import { Router } from '@angular/router';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { ReactiveFormsModule } from '@angular/forms';
 import { CartService, CartDto, CheckOutDto } from '../../core/services/cart.service';
 import { AuthService } from '../../core/services/auth.service';
+import { finalize } from 'rxjs';
 
 @Component({
   selector: 'app-checkout',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, CurrencyPipe],
   templateUrl: './checkout.component.html',
   styleUrls: ['./checkout.component.css']
 })
 export class CheckoutComponent implements OnInit {
+  private readonly cartService = inject(CartService);
+  private readonly authService = inject(AuthService);
+  private readonly fb = inject(FormBuilder);
+  private readonly router = inject(Router);
+  private readonly cdr = inject(ChangeDetectorRef);
+
   cart: CartDto | null = null;
   checkoutForm!: FormGroup;
   loading = false;
   submitting = false;
   error: string | null = null;
   success: string | null = null;
-
-  constructor(
-    private cartService: CartService,
-    private authService: AuthService,
-    private fb: FormBuilder,
-    private router: Router
-  ) {
-    this.initializeForm();
-  }
+  shippingCost = 0;
+  totalWithShipping = 0;
 
   ngOnInit(): void {
     if (!this.authService.isAuthenticated()) {
-      this.router.navigate(['/login'], { queryParams: { returnUrl: '/checkout' } });
+      this.router.navigate(['/login'], { queryParams: { returnUrl: '/cart' } });
       return;
     }
+
+    this.initializeForm();
     this.loadCart();
   }
 
@@ -45,67 +48,81 @@ export class CheckoutComponent implements OnInit {
       city: ['', Validators.required],
       street: ['', Validators.required],
       building: ['', Validators.required],
-      apartment: ['', Validators.required]
+      apartment: ['', Validators.required],
+      neighborhood: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(50)]]
     });
   }
 
   private loadCart(): void {
     this.loading = true;
     this.cartService.getCart().subscribe({
-      next: (data) => {
+      next: (data: CartDto) => {
+        console.log('✅ Checkout cart loaded:', data);
         this.cart = data;
+        this.calculateShippingCost();
         this.loading = false;
-        if (!data.items || data.items.length === 0) {
-          this.error = 'Your cart is empty. Please add items before checkout.';
-          setTimeout(() => this.router.navigate(['/products']), 2000);
+        this.cdr.markForCheck();
+
+        if (!data || !data.items || data.items.length === 0) {
+          this.error = 'Your cart is empty';
+          setTimeout(() => this.router.navigate(['/cart']), 1500);
         }
       },
-      error: (err) => {
+      error: (err: any) => {
+        console.error('❌ Checkout cart error:', err);
+        this.error = 'Failed to load cart';
         this.loading = false;
-        this.error = 'Failed to load cart. Please try again.';
-        console.error('Cart load error:', err);
+        this.cdr.markForCheck();
       }
     });
   }
 
+  private calculateShippingCost(): void {
+    // Shipping will be calculated from product shipping costs when Backend provides them
+    // For now, set to 0 (will be updated when shippingCost is available in cart items)
+    this.shippingCost = 0;
+    this.totalWithShipping = (this.cart?.totalPrice || 0) + this.shippingCost;
+  }
+
   submit(): void {
-    if (this.checkoutForm.invalid || !this.cart) {
-      this.error = 'Please fill in all required fields correctly.';
+    if (this.checkoutForm.invalid) {
+      this.error = 'Please fill all required fields correctly';
       return;
     }
 
     this.submitting = true;
     this.error = null;
-    this.success = null;
 
-    const dto: CheckOutDto = {
+    const checkoutData: CheckOutDto = {
       email: this.checkoutForm.get('email')?.value,
       fullName: this.checkoutForm.get('fullName')?.value,
       phoneNumber: this.checkoutForm.get('phoneNumber')?.value,
       city: this.checkoutForm.get('city')?.value,
       street: this.checkoutForm.get('street')?.value,
       building: this.checkoutForm.get('building')?.value,
-      apartment: this.checkoutForm.get('apartment')?.value
+      apartment: this.checkoutForm.get('apartment')?.value,
+      neighborhood: this.checkoutForm.get('neighborhood')?.value
     };
 
-    this.cartService.checkout(dto).subscribe({
+    this.cartService.checkout(checkoutData).subscribe({
       next: (response) => {
+        console.log('✅ Checkout success:', response);
         this.submitting = false;
-        this.success = '✅ Order placed successfully!';
-        if (response.paymentUrl) {
-          setTimeout(() => {
-            window.location.href = response.paymentUrl;
-          }, 1500);
-        } else {
-          setTimeout(() => {
-            this.router.navigate(['/orders']);
-          }, 2000);
-        }
+        this.success = 'Order placed successfully!';
+        
+        // Clear cart after successful order
+        this.cartService.clearCart().subscribe(() => {
+          console.log('✅ Cart cleared after checkout');
+        });
+        
+        setTimeout(() => {
+          this.router.navigate(['/orders']);
+        }, 1500);
       },
-      error: (err) => {
+      error: (err: any) => {
+        console.error('❌ Checkout error:', err);
         this.submitting = false;
-        this.error = err.error?.message || 'Failed to process checkout. Please try again.';
-        console.error('Checkout error:', err);
+        this.error = err.error?.message || 'Checkout failed. Please try again.';
       }
     });
   }
@@ -117,24 +134,20 @@ export class CheckoutComponent implements OnInit {
   getFieldError(fieldName: string): string {
     const field = this.checkoutForm.get(fieldName);
     if (field?.hasError('required')) {
-      return `${this.formatFieldName(fieldName)} is required`;
+      return `${fieldName} is required`;
     }
     if (field?.hasError('email')) {
-      return 'Invalid email address';
-    }
-    if (field?.hasError('pattern')) {
-      return `Invalid ${this.formatFieldName(fieldName)}`;
+      return 'Invalid email format';
     }
     if (field?.hasError('minlength')) {
-      return `${this.formatFieldName(fieldName)} must be at least 3 characters`;
+      return `${fieldName} is too short`;
+    }
+    if (field?.hasError('maxlength')) {
+      return `${fieldName} is too long`;
+    }
+    if (field?.hasError('pattern')) {
+      return `Invalid ${fieldName} format`;
     }
     return '';
-  }
-
-  private formatFieldName(name: string): string {
-    return name
-      .replace(/([A-Z])/g, ' $1')
-      .replace(/^./, str => str.toUpperCase())
-      .trim();
   }
 }

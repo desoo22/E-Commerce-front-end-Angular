@@ -31,11 +31,11 @@
             <h5 class="card-title fw-bold mb-4">
               <i class="fas fa-list me-2 text-primary"></i>
               Cart Items
-              <span class="badge bg-primary ms-2">{{ cart?.totalQuantity }}</span>
+              <span class="badge bg-primary ms-2">{{ cart?.totalQuantity || 0 }}</span>
             </h5>
 
             <!-- Empty Cart -->
-            <div *ngIf="cart?.items?.length === 0" class="text-center py-5">
+            <div *ngIf="!cart || cart.items.length === 0" class="text-center py-5">
               <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
               <h6 class="text-muted">Your cart is empty</h6>
               <button (click)="goBack()" class="btn btn-primary mt-3">
@@ -44,32 +44,60 @@
             </div>
 
             <!-- Cart Items List -->
-            <div *ngFor="let item of cart?.items; let i = index" class="cart-item mb-3 pb-3" [class.border-bottom]="i < (cart?.items?.length ?? 0) - 1">
+            <div *ngFor="let item of cart?.items; let i = index" class="cart-item mb-3 pb-3" [class.border-bottom]="i < (cart?.items?.length || 0) - 1">
               <div class="row align-items-center g-3">
-                <div class="col-12 col-sm-6">
+                <div class="col-12 col-md-4">
                   <h6 class="mb-2 fw-bold">{{ item.productName || 'Product #' + item.productId }}</h6>
                   <p class="text-muted small mb-1">
-                    <i class="fas fa-box me-2"></i>Quantity: <strong>{{ item.quantity }}</strong>
+                    <i class="fas fa-box me-2"></i>Price: <strong>{{ item.price | currency:'EGP' }}</strong>
                   </p>
                   <p class="text-muted small mb-0" *ngIf="item.variantId">
                     <i class="fas fa-tag me-2"></i>Variant ID: {{ item.variantId }}
                   </p>
                 </div>
-                <div class="col-6 col-sm-3 text-center">
-                  <p class="text-primary fw-bold mb-0">
-                    {{ item.price | currency:'EGP' }}
-                  </p>
-                  <small class="text-muted">per item</small>
+
+                <div class="col-12 col-md-4 d-flex justify-content-center">
+                  <!-- Quantity Controls -->
+                  <div class="btn-group btn-group-sm" role="group">
+                    <button
+                      (click)="qtyDown(item)"
+                      [disabled]="item.quantity <= 1"
+                      class="btn btn-outline-secondary"
+                      type="button"
+                      title="Decrease quantity"
+                    >
+                      <i class="fas fa-minus"></i>
+                    </button>
+                    <button class="btn btn-light" disabled="disabled" type="button">
+                      {{ item.quantity }}
+                    </button>
+                    <button
+                      (click)="qtyUp(item)"
+                      class="btn btn-outline-secondary"
+                      type="button"
+                      title="Increase quantity"
+                    >
+                      <i class="fas fa-plus"></i>
+                    </button>
+                  </div>
                 </div>
-                <div class="col-6 col-sm-3 text-end">
+
+                <div class="col-12 col-md-4 text-md-end d-flex justify-content-between justify-content-md-end gap-2">
+                  <div class="text-center">
+                    <p class="text-primary fw-bold mb-1">
+                      {{ (item.price * item.quantity) | currency:'EGP' }}
+                    </p>
+                    <small class="text-muted">Subtotal</small>
+                  </div>
+
                   <button
                     (click)="removeItem(item)"
                     [disabled]="removingItem === (item.variantId ?? item.productId)"
                     class="btn btn-sm btn-outline-danger"
+                    title="Remove from cart"
                   >
                     <span *ngIf="removingItem !== (item.variantId ?? item.productId)">
-                      <i class="fas fa-trash me-1"></i>
-                      <span class="d-none d-sm-inline">Remove</span>
+                      <i class="fas fa-trash"></i>
                     </span>
                     <span *ngIf="removingItem === (item.variantId ?? item.productId)">
                       <span class="spinner-border spinner-border-sm"></span>
@@ -94,16 +122,16 @@
             <div class="mb-4">
               <div class="d-flex justify-content-between mb-2">
                 <span class="text-muted">Subtotal:</span>
-                <span class="fw-bold">{{ cart.totalPrice | currency:'EGP' }}</span>
+                <span class="fw-bold">{{ (cart?.totalPrice || 0) | currency:'EGP' }}</span>
               </div>
               <div class="d-flex justify-content-between mb-2">
                 <span class="text-muted">Shipping:</span>
-                <span class="text-success fw-bold">FREE</span>
+                <span class="text-muted fw-bold">TBD</span>
               </div>
               <hr>
               <div class="d-flex justify-content-between">
                 <span class="h6 mb-0">Total:</span>
-                <span class="h5 mb-0 text-primary fw-bold">{{ cart.totalPrice | currency:'EGP' }}</span>
+                <span class="h5 mb-0 text-primary fw-bold">{{ (cart?.totalPrice || 0) | currency:'EGP' }}</span>
               </div>
             </div>
 
@@ -111,7 +139,8 @@
             <div *ngIf="!isAuthenticated()">
               <button
                 (click)="proceedToCheckout()"
-                class="btn btn-primary w-100 fw-bold rounded-3 mb-3"
+                class="btn btn-primary w-100 fw-bold rounded-3 mb-3 py-3"
+                type="button"
               >
                 <i class="fas fa-sign-in-alt me-2"></i>Login to Checkout
               </button>
@@ -120,107 +149,16 @@
               </small>
             </div>
 
-            <!-- Logged in: Show checkout form -->
-            <form *ngIf="isAuthenticated()" [formGroup]="checkoutForm" (ngSubmit)="checkout()">
-              <div class="mb-3">
-                <label for="email" class="form-label fw-bold small">Email</label>
-                <input
-                  type="email"
-                  id="email"
-                  formControlName="email"
-                  placeholder="your@email.com"
-                  class="form-control form-control-sm rounded-3"
-                  [class.is-invalid]="checkoutForm.get('email')?.invalid && checkoutForm.get('email')?.touched"
-                />
-              </div>
-
-              <div class="mb-3">
-                <label for="fullName" class="form-label fw-bold small">Full Name</label>
-                <input
-                  type="text"
-                  id="fullName"
-                  formControlName="fullName"
-                  placeholder="John Doe"
-                  class="form-control form-control-sm rounded-3"
-                  [class.is-invalid]="checkoutForm.get('fullName')?.invalid && checkoutForm.get('fullName')?.touched"
-                />
-              </div>
-
-              <div class="mb-3">
-                <label for="phone" class="form-label fw-bold small">Phone</label>
-                <input
-                  type="tel"
-                  id="phone"
-                  formControlName="phoneNumber"
-                  placeholder="+20 1234567890"
-                  class="form-control form-control-sm rounded-3"
-                  [class.is-invalid]="checkoutForm.get('phoneNumber')?.invalid && checkoutForm.get('phoneNumber')?.touched"
-                />
-              </div>
-
-              <div class="row g-2 mb-3">
-                <div class="col-6">
-                  <label for="city" class="form-label fw-bold small">City</label>
-                  <input
-                    type="text"
-                    id="city"
-                    formControlName="city"
-                    placeholder="Cairo"
-                    class="form-control form-control-sm rounded-3"
-                    [class.is-invalid]="checkoutForm.get('city')?.invalid && checkoutForm.get('city')?.touched"
-                  />
-                </div>
-                <div class="col-6">
-                  <label for="street" class="form-label fw-bold small">Street</label>
-                  <input
-                    type="text"
-                    id="street"
-                    formControlName="street"
-                    placeholder="Main St"
-                    class="form-control form-control-sm rounded-3"
-                    [class.is-invalid]="checkoutForm.get('street')?.invalid && checkoutForm.get('street')?.touched"
-                  />
-                </div>
-              </div>
-
-              <div class="row g-2 mb-3">
-                <div class="col-6">
-                  <label for="building" class="form-label fw-bold small">Building</label>
-                  <input
-                    type="text"
-                    id="building"
-                    formControlName="building"
-                    placeholder="12"
-                    class="form-control form-control-sm rounded-3"
-                    [class.is-invalid]="checkoutForm.get('building')?.invalid && checkoutForm.get('building')?.touched"
-                  />
-                </div>
-                <div class="col-6">
-                  <label for="apartment" class="form-label fw-bold small">Apt</label>
-                  <input
-                    type="text"
-                    id="apartment"
-                    formControlName="apartment"
-                    placeholder="5A"
-                    class="form-control form-control-sm rounded-3"
-                    [class.is-invalid]="checkoutForm.get('apartment')?.invalid && checkoutForm.get('apartment')?.touched"
-                  />
-                </div>
-              </div>
-
+            <!-- Logged in: Show proceed to checkout button -->
+            <div *ngIf="isAuthenticated()">
               <button
-                type="submit"
-                [disabled]="checkoutForm.invalid || checkingOut"
-                class="btn btn-success w-100 fw-bold rounded-3"
+                (click)="checkout()"
+                class="btn btn-success w-100 fw-bold rounded-3 py-3"
+                type="button"
               >
-                <span *ngIf="!checkingOut">
-                  <i class="fas fa-check-circle me-2"></i>Complete Purchase
-                </span>
-                <span *ngIf="checkingOut">
-                  <span class="spinner-border spinner-border-sm me-2"></span>Processing...
-                </span>
+                <i class="fas fa-arrow-right me-2"></i>Proceed to Checkout
               </button>
-            </form>
+            </div>
           </div>
         </div>
       </div>

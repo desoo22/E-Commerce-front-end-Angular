@@ -57,7 +57,7 @@ export class ProductDetailComponent implements OnInit {
       if (this.quantity < quantity) {
         this.quantity++;
       }
-    } else if (this.product && this.quantity < this.product.stock) {
+    } else {
       this.quantity++;
     }
   }
@@ -78,17 +78,18 @@ export class ProductDetailComponent implements OnInit {
 
     this.addingToCart = true;
 
+    const hasVariants = this.product.variants && this.product.variants.length > 0;
+    const selectedVariant = hasVariants ? this.product.variants![this.selectedVariant] : null;
+
     const cartItem: CartItem = {
       productId: this.product.id,
       productName: this.product.name,
       quantity: this.quantity,
-      price: this.product.variants && this.product.variants.length > 0
-        ? this.product.variants[this.selectedVariant].price
-        : this.product.price,
-      variantId: this.product.variants && this.product.variants.length > 0
-        ? this.product.variants[this.selectedVariant].id
-        : undefined
+      price: selectedVariant ? selectedVariant.price : this.product.price,
+      variantId: selectedVariant ? selectedVariant.id : this.product.id  // Use productId as fallback
     };
+
+    console.log('🛒 Adding to cart:', cartItem);
 
     this.cartService.addItem(cartItem).subscribe({
       next: () => {

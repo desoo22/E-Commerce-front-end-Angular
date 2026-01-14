@@ -3,8 +3,9 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angula
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
-import { CartService } from '../../../core/services/cart.service';
+import { CartService, CartDto } from '../../../core/services/cart.service';
 import { finalize, timeout } from 'rxjs/operators';
+import { of, Observable } from 'rxjs';
 
 @Component({
   selector: 'app-login',
@@ -79,7 +80,7 @@ export class LoginComponent implements OnInit {
           console.log('📍 Step changed to:', this.step);
           this.cdr.detectChanges();
         },
-        (err) => { 
+        (err: any) => { 
           console.error('❌ OTP Request Error:', err);
           this.error = err.error?.message || 'failed_to_send_otp'; 
         }
@@ -104,11 +105,18 @@ export class LoginComponent implements OnInit {
         console.log('Login successful:', response);
         this.loading = false;
         
-        // 🔥 Transfer guest cart to user cart after login
-        this.transferGuestCart();
-        
-        const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
-        setTimeout(() => this.router.navigate([returnUrl || '/products']), 1000);
+        // 🔥 Transfer guest cart to user cart after login, then redirect
+        const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') || '/products';
+        this.transferGuestCart().subscribe({
+          next: () => {
+            console.log('✅ Guest cart transferred (if any)');
+            setTimeout(() => this.router.navigate([returnUrl]), 500);
+          },
+          error: (err: any) => {
+            console.error('❌ Guest cart transfer failed', err);
+            setTimeout(() => this.router.navigate([returnUrl]), 500);
+          }
+        });
       },
       error: (error) => {
         console.error('Login failed:', error);
@@ -123,23 +131,19 @@ export class LoginComponent implements OnInit {
     });
   }
 
-  private transferGuestCart(): void {
+  private transferGuestCart(): Observable<CartDto | null> {
     const guestCartRaw = localStorage.getItem('guest_cart');
-    if (!guestCartRaw) return;
+    if (!guestCartRaw) return of(null);
     
     try {
       const guestCart = JSON.parse(guestCartRaw);
       if (guestCart && guestCart.items && guestCart.items.length > 0) {
-        // Reload cart from backend which will sync with server
-        this.cartService.loadCart();
-        console.log('✅ Guest cart transferred to user');
-        
-        // Clear guest cart after transfer
-        localStorage.removeItem('guest_cart');
+        return this.cartService.syncGuestCartToUser();
       }
     } catch (e) {
       console.error('Failed to parse guest cart', e);
     }
+    return of(null);
   }
 
   backToEmail(): void {

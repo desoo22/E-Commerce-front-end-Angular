@@ -1,20 +1,39 @@
 <nav class="navbar" *ngIf="isAuthenticated$ | async as isAuthenticated; else notAuthenticated">
   <div class="nav-left">
-    <a routerLink="/products" class="nav-link" routerLinkActive="active">
+    <!-- Products and Cart: Hidden for Owner/Admin -->
+    <a *ngIf="!(isAdminOrOwner$ | async)" 
+       routerLink="/products" 
+       class="nav-link" 
+       routerLinkActive="active">
       <i class="fas fa-shopping-bag"></i> Products
     </a>
-    <a routerLink="/cart" class="nav-link" routerLinkActive="active">
+    <a *ngIf="!(isAdminOrOwner$ | async)" 
+       routerLink="/cart" 
+       class="nav-link" 
+       routerLinkActive="active">
       <i class="fas fa-shopping-cart"></i> Cart
       <span class="badge badge-pill badge-danger" *ngIf="(cartCount$ | async) as count">
         <span *ngIf="count > 0">{{ count }}</span>
       </span>
     </a>
+    <!-- Admin/Owner see Orders and Admin Panel; My Products route removed -->
     <a routerLink="/orders" class="nav-link" routerLinkActive="active">
       <i class="fas fa-box"></i> Orders
+    </a>
+    <a *ngIf="isAdminOrOwner$ | async" 
+       routerLink="/admin" 
+       class="nav-link nav-link-admin" 
+       routerLinkActive="active">
+      <i class="fas fa-user-shield"></i> Admin Panel
     </a>
   </div>
 
   <div class="nav-right">
+    <span class="user-role" *ngIf="currentUser$ | async as user">
+      <i class="fas fa-crown" *ngIf="user.role === 'Owner'"></i>
+      <i class="fas fa-shield-alt" *ngIf="user.role === 'Admin'"></i>
+      {{ user.role }}
+    </span>
     <a routerLink="/profile" class="nav-link" routerLinkActive="active">
       <i class="fas fa-user"></i> Profile
     </a>
