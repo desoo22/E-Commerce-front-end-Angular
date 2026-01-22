@@ -31,7 +31,7 @@
             <h5 class="card-title fw-bold mb-4">
               <i class="fas fa-list me-2 text-primary"></i>
               Cart Items
-              <span class="badge bg-primary ms-2">{{ cart?.totalQuantity || 0 }}</span>
+              <span class="badge bg-primary ms-2">{{ cart.totalQuantity || 0 }}</span>
             </h5>
 
             <!-- Empty Cart -->
@@ -44,7 +44,7 @@
             </div>
 
             <!-- Cart Items List -->
-            <div *ngFor="let item of cart?.items; let i = index" class="cart-item mb-3 pb-3" [class.border-bottom]="i < (cart?.items?.length || 0) - 1">
+            <div *ngFor="let item of cart.items; let i = index" class="cart-item mb-3 pb-3" [class.border-bottom]="i < (cart.items.length || 0) - 1">
               <div class="row align-items-center g-3">
                 <div class="col-12 col-md-4">
                   <h6 class="mb-2 fw-bold">{{ item.productName || 'Product #' + item.productId }}</h6>
@@ -122,7 +122,7 @@
             <div class="mb-4">
               <div class="d-flex justify-content-between mb-2">
                 <span class="text-muted">Subtotal:</span>
-                <span class="fw-bold">{{ (cart?.totalPrice || 0) | currency:'EGP' }}</span>
+                <span class="fw-bold">{{ (cart.totalPrice || 0) | currency:'EGP' }}</span>
               </div>
               <div class="d-flex justify-content-between mb-2">
                 <span class="text-muted">Shipping:</span>
@@ -131,7 +131,7 @@
               <hr>
               <div class="d-flex justify-content-between">
                 <span class="h6 mb-0">Total:</span>
-                <span class="h5 mb-0 text-primary fw-bold">{{ (cart?.totalPrice || 0) | currency:'EGP' }}</span>
+                <span class="h5 mb-0 text-primary fw-bold">{{ (cart.totalPrice || 0) | currency:'EGP' }}</span>
               </div>
             </div>
 

@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { timeout } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 
 @Injectable({
@@ -8,6 +9,7 @@ import { environment } from '../../../environments/environment';
 })
 export class ApiService {
   private apiUrl = environment.apiUrl;
+  private readonly requestTimeoutMs = 60000; // 60 seconds (increase to allow large base64 image payloads)
 
   constructor(private http: HttpClient) {}
 
@@ -35,7 +37,7 @@ export class ApiService {
       console.log(`🔐 Authorization header (first 100 chars): ${authHeader.substring(0, 100)}...`);
     }
     const headers = this.getHeaders(token);
-    return this.http.get<T>(fullUrl, { headers });
+    return this.http.get<T>(fullUrl, { headers }).pipe(timeout(this.requestTimeoutMs));
   }
 
   // POST request
@@ -56,12 +58,12 @@ export class ApiService {
     // If data is FormData, don't set Content-Type (browser will set it automatically with boundary)
     if (data instanceof FormData) {
       console.log('📤 Sending FormData - letting browser set Content-Type');
-      return this.http.post<T>(`${this.apiUrl}/${endpoint}`, data, { headers });
+      return this.http.post<T>(`${this.apiUrl}/${endpoint}`, data, { headers }).pipe(timeout(this.requestTimeoutMs));
     }
     
     // Otherwise set Content-Type to application/json
     headers = headers.set('Content-Type', 'application/json');
-    return this.http.post<T>(`${this.apiUrl}/${endpoint}`, data, { headers });
+    return this.http.post<T>(`${this.apiUrl}/${endpoint}`, data, { headers }).pipe(timeout(this.requestTimeoutMs));
   }
 
   // PUT request
@@ -80,12 +82,12 @@ export class ApiService {
     // If data is FormData, don't set Content-Type (browser will set it automatically)
     if (data instanceof FormData) {
       console.log('📤 Sending FormData - letting browser set Content-Type');
-      return this.http.put<T>(`${this.apiUrl}/${endpoint}`, data, { headers });
+      return this.http.put<T>(`${this.apiUrl}/${endpoint}`, data, { headers }).pipe(timeout(this.requestTimeoutMs));
     }
     
     // Otherwise set Content-Type to application/json
     headers = headers.set('Content-Type', 'application/json');
-    return this.http.put<T>(`${this.apiUrl}/${endpoint}`, data, { headers });
+    return this.http.put<T>(`${this.apiUrl}/${endpoint}`, data, { headers }).pipe(timeout(this.requestTimeoutMs));
   }
 
   // DELETE request (with optional body)
@@ -94,7 +96,7 @@ export class ApiService {
     console.log(`🔍 DELETE ${endpoint} - Token: ${token ? '✅ exists' : '❌ missing'}`);
     const headers = this.getHeaders(token);
     const url = `${this.apiUrl}/${endpoint}`;
-    return this.http.delete<T>(url, { headers, body: data });
+    return this.http.delete<T>(url, { headers, body: data }).pipe(timeout(this.requestTimeoutMs));
   }
 
   // Get token from localStorage

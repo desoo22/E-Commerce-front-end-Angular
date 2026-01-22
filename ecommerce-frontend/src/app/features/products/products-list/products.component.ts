@@ -61,6 +61,9 @@ export class ProductsComponent implements OnInit {
   }
 
   private loadAllProductsData(): void {
+    // Ensure we fetch fresh products (clear any stale in-memory/local caches)
+    this.productService.clearCache();
+
     this.loading = true;
     this.productService.getProducts().subscribe(
       (data) => {
@@ -126,12 +129,25 @@ export class ProductsComponent implements OnInit {
   }
 
   getProductImage(product: Product): string {
+    console.log(`🖼️ Product ${product.id} - ${product.name} images:`, product.images);
+    
     if (!product.images || product.images.length === 0) {
-      return 'assets/placeholder.png';
+      console.log(`❌ No images for product ${product.id}`);
+      return 'https://via.placeholder.com/400x300/e0e0e0/757575?text=No+Image';
     }
 
     const first = product.images[0];
-    return typeof first === 'string' ? first : (first.imageData || first.imageUrl || 'assets/placeholder.png');
+    console.log(`📸 First image object for ${product.id}:`, first);
+    
+    if (typeof first === 'string') {
+      console.log(`✅ Image is a string for ${product.id}`);
+      return first;
+    }
+    
+    // Support both imageData (lowercase) and ImageData (capital) from API
+    const imageUrl = (first as any).ImageData || (first as any).imageData || (first as any).imageUrl;
+    console.log(`🔗 Extracted imageUrl for ${product.id}:`, imageUrl ? imageUrl.substring(0, 50) + '...' : 'NULL');
+    return imageUrl || 'https://via.placeholder.com/400x300/e0e0e0/757575?text=No+Image';
   }
 
   getProductStock(product: Product): number {
