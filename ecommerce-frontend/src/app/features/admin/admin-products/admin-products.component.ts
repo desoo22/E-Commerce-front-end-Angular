@@ -2,6 +2,7 @@ import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { ProductService } from '../../../core/services/product.service';
+import { Category, CategoryService } from '../../../core/services/category.service';
 
 @Component({
   selector: 'app-admin-products',
@@ -12,9 +13,11 @@ import { ProductService } from '../../../core/services/product.service';
 })
 export class AdminProductsComponent implements OnInit {
   private productService = inject(ProductService);
+  private categoryService = inject(CategoryService);
   private cdr = inject(ChangeDetectorRef);
   
   products: any[] = [];
+  categories: Category[] = [];
   loading = false;
   error: string | null = null;
   showAddForm = false;
@@ -26,6 +29,7 @@ export class AdminProductsComponent implements OnInit {
   newProduct = {
     name: '',
     description: '',
+    categoryId: '', // أضف هذا السطر
     categoryName: '',
     price: 0,
     variantPrice: 0,
@@ -39,6 +43,14 @@ export class AdminProductsComponent implements OnInit {
     console.log('🚀 Calling loadProducts...');
     this.loadProducts();
     console.log('🚀 loadProducts() called, loading=', this.loading);
+
+    this.categoryService.getCategories().subscribe(
+      (data) => {
+        this.categories = data;
+        // لو عايز تتأكد
+        console.log('Categories loaded:', this.categories);
+      }
+    );
   }
 
   loadProducts(): void {
@@ -82,6 +94,7 @@ export class AdminProductsComponent implements OnInit {
     this.newProduct = {
       name: product.name || '',
       description: product.description,
+      categoryId: product.categoryId || '', // تأكد من استخدام categoryId
       categoryName: product.categoryName,
       price: product.price,
       variantPrice: product.variants?.[0]?.price || 0,
@@ -95,7 +108,7 @@ export class AdminProductsComponent implements OnInit {
   }
 
   saveProduct(): void {
-    if (!this.newProduct.name || !this.newProduct.description || !this.newProduct.categoryName || !this.newProduct.price) {
+    if (!this.newProduct.name || !this.newProduct.description || !this.newProduct.categoryId || !this.newProduct.price) {
       alert('Please fill all required fields: Name, Description, Category, and Price');
       return;
     }
@@ -105,6 +118,7 @@ export class AdminProductsComponent implements OnInit {
         id: this.editingProduct.id,
         name: this.newProduct.name,
         description: this.newProduct.description,
+        categoryId: this.newProduct.categoryId, // تأكد من إرسال categoryId
         categoryName: this.newProduct.categoryName,
         price: this.newProduct.price,
         variants: [{
@@ -137,7 +151,8 @@ export class AdminProductsComponent implements OnInit {
       const formData = new FormData();
       formData.append('name', this.newProduct.name);
       formData.append('description', this.newProduct.description);
-      formData.append('categoryName', this.newProduct.categoryName);
+      formData.append('categoryId', this.newProduct.categoryId); // تأكد من إضافة categoryId
+      formData.append('categoryName', this.newProduct.categoryName); // لو الـ API عايز الاسم
       formData.append('price', this.newProduct.price.toString());
       formData.append('variantPrice', (this.newProduct.variantPrice || this.newProduct.price).toString());
       formData.append('variantQuantity', (this.newProduct.variantQuantity || 10).toString());
@@ -214,7 +229,8 @@ export class AdminProductsComponent implements OnInit {
     this.newProduct = {
       name: '',
       description: '',
-      categoryName: '',
+      categoryId: '', // أضف هذا السطر
+      categoryName: '', // ممكن تسيبه لو بتحتاجه للعرض فقط
       price: 0,
       variantPrice: 0,
       variantQuantity: 10,
@@ -224,5 +240,10 @@ export class AdminProductsComponent implements OnInit {
     this.selectedImages = [];
     this.previewImages = [];
     this.imagePreviews = [];
+  }
+
+  getCategoryName(categoryId: string): string {
+    const selectedCategory = this.categories.find(cat => String(cat.id) === String(categoryId));
+    return selectedCategory ? selectedCategory.name : '';
   }
 }

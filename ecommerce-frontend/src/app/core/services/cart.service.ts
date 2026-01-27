@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { BehaviorSubject, Observable, of } from 'rxjs';
+import { BehaviorSubject, Observable, of, throwError } from 'rxjs';
 import { tap, map, catchError } from 'rxjs/operators';
 import { ApiService } from './api.service';
 import { AuthService } from './auth.service';
@@ -159,12 +159,19 @@ export class CartService {
       this.writeGuest(guest);
       return of(guest);
     }
-    return this.apiService.post<any>('cart/items', {
-      productVariantId: item.variantId ?? item.productId,
+
+    // أرسل productId دائماً وvariantId فقط إذا كان موجوداً
+    const payload: any = {
+      productId: item.productId,
       quantity: item.quantity,
       productName: item.productName,
       unitPrice: item.price
-    }).pipe(
+    };
+    if (item.variantId) {
+      payload.productVariantId = item.variantId;
+    }
+
+    return this.apiService.post<any>('cart/items', payload).pipe(
       map(data => this.mapServerCart(data)),
       tap(cart => this.cartSubject.next(cart))
     );
@@ -181,8 +188,13 @@ export class CartService {
       this.writeGuest(guest);
       return of(guest);
     }
+    const variantId = item.variantId ?? null;
+    if (this.isAuthed() && !variantId) {
+      return throwError(() => new Error('Missing product variant id for authenticated request'));
+    }
+
     return this.apiService.delete<any>('cart/items', {
-      productVariantId: item.variantId ?? item.productId,
+      productVariantId: variantId,
       quantity: item.quantity || 1,
       productName: item.productName,
       unitPrice: item.price
@@ -223,8 +235,13 @@ export class CartService {
 
     if (delta > 0) {
       // Increase quantity
+      const variantId = item.variantId ?? null;
+      if (this.isAuthed() && !variantId) {
+        return throwError(() => new Error('Missing product variant id for authenticated request'));
+      }
+
       return this.apiService.post<any>('cart/items', {
-        productVariantId: item.variantId ?? item.productId,
+        productVariantId: variantId,
         quantity: delta,
         productName: item.productName,
         unitPrice: item.price
@@ -234,8 +251,13 @@ export class CartService {
       );
     } else if (delta < 0) {
       // Decrease quantity
+      const variantId = item.variantId ?? null;
+      if (this.isAuthed() && !variantId) {
+        return throwError(() => new Error('Missing product variant id for authenticated request'));
+      }
+
       return this.apiService.delete<any>('cart/items', {
-        productVariantId: item.variantId ?? item.productId,
+        productVariantId: variantId,
         quantity: Math.abs(delta),
         productName: item.productName,
         unitPrice: item.price
@@ -284,8 +306,13 @@ export class CartService {
       this.writeGuest(guest);
       return of(guest);
     }
+    const variantId = item.variantId ?? null;
+    if (this.isAuthed() && !variantId) {
+      return throwError(() => new Error('Missing product variant id for authenticated request'));
+    }
+
     return this.apiService.post<any>('cart/items/increase', {
-      productVariantId: item.variantId ?? item.productId,
+      productVariantId: variantId,
       quantity: 1,
       productName: item.productName,
       unitPrice: item.price
@@ -316,8 +343,13 @@ export class CartService {
       this.writeGuest(guest);
       return of(guest);
     }
+    const variantId = item.variantId ?? null;
+    if (this.isAuthed() && !variantId) {
+      return throwError(() => new Error('Missing product variant id for authenticated request'));
+    }
+
     return this.apiService.post<any>('cart/items/decrease', {
-      productVariantId: item.variantId ?? item.productId,
+      productVariantId: variantId,
       quantity: 1,
       productName: item.productName,
       unitPrice: item.price

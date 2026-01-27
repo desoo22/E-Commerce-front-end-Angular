@@ -36,15 +36,26 @@ export class CheckoutComponent implements OnInit {
       return;
     }
 
-    this.initializeForm();
+    // جلب الإيميل من التوكن أو من بيانات المستخدم
+    let email = '';
+    const token = localStorage.getItem('accessToken');
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        email = payload.email || '';
+      } catch {}
+    }
+    // إذا لم يوجد في التوكن، جرب من profile أو backend إذا متاح
+
+    this.initializeForm(email);
     this.loadCart();
   }
 
-  private initializeForm(): void {
+  private initializeForm(email: string = ''): void {
     this.checkoutForm = this.fb.group({
-      email: ['', [Validators.required, Validators.email]],
+      email: [{ value: email, disabled: true }, [Validators.required, Validators.email]],
       fullName: ['', [Validators.required, Validators.minLength(3)]],
-      phoneNumber: ['', [Validators.required, Validators.pattern(/^\+?[0-9\s\-\(\)]{10,}$/)]],
+      phoneNumber: ['', [Validators.required, Validators.pattern(/^[+]?\d{10,}$/)]],
       city: ['', Validators.required],
       street: ['', Validators.required],
       building: ['', Validators.required],
@@ -93,8 +104,17 @@ export class CheckoutComponent implements OnInit {
     this.submitting = true;
     this.error = null;
 
+    // استخدم الإيميل من التوكن دائماً
+    let email = '';
+    const token = localStorage.getItem('accessToken');
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        email = payload.email || '';
+      } catch {}
+    }
     const checkoutData: CheckOutDto = {
-      email: this.checkoutForm.get('email')?.value,
+      email: email,
       fullName: this.checkoutForm.get('fullName')?.value,
       phoneNumber: this.checkoutForm.get('phoneNumber')?.value,
       city: this.checkoutForm.get('city')?.value,

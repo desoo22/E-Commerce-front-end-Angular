@@ -6,7 +6,7 @@
     </button>
   </div>
 
-  <div *ngIf="showAddForm" class="product-form-overlay">
+  <div *ngIf="showAddForm && newProduct" class="product-form-overlay">
     <div class="product-form">
       <h2>{{ editingProduct ? 'Edit Product' : 'Add New Product' }}</h2>
       <form (ngSubmit)="saveProduct()">
@@ -18,10 +18,21 @@
           <label>Description</label>
           <textarea [(ngModel)]="newProduct.description" name="description" required class="form-control" placeholder="Product description"></textarea>
         </div>
-        <div class="form-group">
-          <label>Category Name</label>
-          <input type="text" [(ngModel)]="newProduct.categoryName" name="categoryName" required class="form-control" placeholder="e.g., Electronics">
-        </div>
+      
+         <div class="form-group">
+  <label>Category</label>
+  <select
+    class="form-select"
+    [(ngModel)]="newProduct.categoryId"
+    name="category"
+    required
+  >
+    <option value="" disabled>Select Category</option>
+    <option *ngFor="let cat of categories" [value]="cat.id">
+      {{ cat.name }}
+    </option>
+  </select>
+</div>
         <div class="form-group">
           <label>Price</label>
           <input type="number" [(ngModel)]="newProduct.price" name="price" required class="form-control" step="0.01" placeholder="Product price">
@@ -68,6 +79,8 @@
           </div>
         </div>
 
+ 
+
         <div class="form-actions">
           <button type="submit" class="btn btn-success">Save Product</button>
           <button type="button" class="btn btn-secondary" (click)="cancelEdit()">Cancel</button>
@@ -77,25 +90,6 @@
   </div>
 
   <div *ngIf="loading" class="loading">Loading products...</div>
-
-  <div class="products-grid" *ngIf="!loading && products.length > 0">
-    <div class="product-card" *ngFor="let product of products">
-      <img [src]="(product.images?.[0]?.imageData || product.images?.[0]?.imageUrl) || 'assets/placeholder.png'" [alt]="product.description">
-      <div class="product-info">
-        <p class="category">{{ product.categoryName }}</p>
-        <p class="description">{{ product.description }}</p>
-        <p class="price">${{ product.price }}</p>
-      </div>
-      <div class="product-actions">
-        <button class="btn btn-sm btn-warning" (click)="editProduct(product)">
-          <i class="fas fa-edit"></i> Edit
-        </button>
-        <button class="btn btn-sm btn-danger" (click)="deleteProduct(product.id)">
-          <i class="fas fa-trash"></i> Delete
-        </button>
-      </div>
-    </div>
-  </div>
 
   <div *ngIf="!loading && products.length === 0" class="no-products">
     <p>No products yet. Click "Add Product" to create one!</p>

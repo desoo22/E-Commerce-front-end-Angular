@@ -15,20 +15,11 @@
             <button
               *ngFor="let cat of categories"
               (click)="selectCategory(cat)"
-              [class.active]="selectedCategory?.id === cat.id"
-              class="btn btn-outline-primary me-2 mb-2"
-            >
+              [ngClass]="{'btn btn-outline-primary me-2 mb-2': true, 'active': selectedCategory?.id === cat.id}">
               {{ cat.name }}
             </button>
           </div>
         </div>
-      </div>
-    </div>
-
-    <!-- Loading -->
-    <div *ngIf="loading" class="text-center py-5">
-      <div class="spinner-border text-primary" role="status">
-        <span class="visually-hidden">Loading...</span>
       </div>
       <p class="mt-3 text-muted">Loading products...</p>
     </div>
@@ -55,20 +46,29 @@
                 </span>
               </div>
               
-              <!-- Add to Cart button: Hidden for Owner/Admin and on My Products page -->
-              <button
-                *ngIf="!isAdminOrOwner"
-                (click)="addToCart(product)"
-                [disabled]="getProductStock(product) === 0 || addingToCart === product.id"
-                class="btn btn-primary w-100"
-              >
-                <span *ngIf="addingToCart !== product.id">
-                  <i class="fas fa-plus-circle me-2"></i>Add to Cart
-                </span>
-                <span *ngIf="addingToCart === product.id">
-                  <span class="spinner-border spinner-border-sm me-2"></span>Loading...
-                </span>
-              </button>
+
+              <!-- Add to Cart & Buy Now buttons: Hidden for Owner/Admin and on My Products page -->
+              <div *ngIf="!isAdminOrOwner" class="d-flex gap-2">
+                <button
+                  (click)="addToCart(product)"
+                  [disabled]="getProductStock(product) === 0 || addingToCart === product.id"
+                  class="btn btn-primary flex-fill"
+                >
+                  <span *ngIf="addingToCart !== product.id">
+                    <i class="fas fa-plus-circle me-2"></i>Add to Cart
+                  </span>
+                  <span *ngIf="addingToCart === product.id">
+                    <span class="spinner-border spinner-border-sm me-2"></span>Loading...
+                  </span>
+                </button>
+                <button
+                  (click)="buyNow(product)"
+                  [disabled]="getProductStock(product) === 0"
+                  class="btn btn-success flex-fill"
+                >
+                  <i class="fas fa-bolt me-2"></i>Buy Now
+                </button>
+              </div>
               
               <!-- View Only message for Admin/Owner -->
               <div *ngIf="isAdminOrOwner" class="alert alert-info mb-0 text-center">

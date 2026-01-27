@@ -8,37 +8,76 @@
   <table class="orders-table" *ngIf="!loading && orders.length > 0">
     <thead>
       <tr>
+        <th style="width:32px;"></th>
         <th>Order ID</th>
         <th>User</th>
-        <th>Total</th>
+        <th>Phone</th>
         <th>Status</th>
-        <th>Date</th>
+        <th>Items</th>
         <th>Actions</th>
       </tr>
     </thead>
     <tbody>
-      <tr *ngFor="let order of orders">
-        <td>#{{ order.id }}</td>
-        <td>{{ order.userId }}</td>
-        <td>${{ order.totalAmount }}</td>
-        <td>
-          <span class="status-badge" [class]="'status-' + order.status.toLowerCase()">
-            {{ order.status }}
-          </span>
-        </td>
-        <td>{{ order.createdAt | date:'short' }}</td>
-        <td>
-          <select class="status-select" [value]="order.status" (change)="updateStatus(order.id, $any($event.target).value)">
-            <option value="Pending">Pending</option>
-            <option value="Processing">Processing</option>
-            <option value="Shipped">Shipped</option>
-            <option value="Delivered">Delivered</option>
-            <option value="Cancelled">Cancelled</option>
-          </select>
-        </td>
-      </tr>
+      <ng-container *ngFor="let order of orders">
+        <tr>
+          <td style="text-align:center;">
+            <button (click)="toggleExpand(order.orderId || order.id)" style="background:none;border:none;outline:none;cursor:pointer;font-size:18px;">
+              <span [ngClass]="expandedOrderId === (order.orderId || order.id) ? 'fa fa-chevron-down' : 'fa fa-chevron-right'"></span>
+            </button>
+          </td>
+          <td>#{{ order.orderId || order.id }}</td>
+          <td>{{ order.user?.name || order.user?.email || order.email }}</td>
+          <td>{{ order.user?.phoneNumber || order.phoneNumber }}</td>
+          <td>
+            <span class="status-badge" [class]="'status-' + (order.status?.toLowerCase() || 'pending')">
+              {{ order.status }}
+            </span>
+          </td>
+          <td>
+            <span>{{ order.items && order.items.length ? order.items.length : 0 }}</span>
+          </td>
+          <td>
+            <select class="status-select" [value]="order.status" (change)="updateStatus(order.orderId || order.id, $any($event.target).value)">
+              <option value="PendingPayment">Pending Payment</option>
+              <option value="Paid">Paid</option>
+              <option value="Processing">Processing</option>
+              <option value="Shipped">Shipped</option>
+              <option value="Delivered">Delivered</option>
+              <option value="Cancelled">Cancelled</option>
+              <option value="Failed">Failed</option>
+            </select>
+          </td>
+        </tr>
+        <tr *ngIf="expandedOrderId === (order.orderId || order.id)">
+          <td colspan="6" style="background:#f9fafb; border-bottom:1px solid #e5e7eb;">
+            <div style="padding:1em 2em;">
+              <div style="margin-bottom:10px;">
+                <strong>User Info:</strong><br>
+                <span><i class="fa fa-user"></i> {{ order.user?.name || order.user?.email || order.email }}</span>
+                <span *ngIf="order.user?.phoneNumber || order.phoneNumber"> | <i class="fa fa-phone"></i> {{ order.user?.phoneNumber || order.phoneNumber }}</span><br>
+                <span *ngIf="order.email"><i class="fa fa-envelope"></i> {{ order.email }}</span><br>
+                <span *ngIf="order.city || order.street"><i class="fa fa-map-marker"></i> {{ order.city }}, {{ order.street }}<span *ngIf="order.neighborhood">, {{ order.neighborhood }}</span></span>
+              </div>
+              <div style="margin-bottom:10px;">
+                <strong>Order Items:</strong>
+                <ul style="margin:0; padding-left: 1.2em;">
+                  <li *ngFor="let item of order.items">
+                    {{ item.productName }} × {{ item.quantity }} - {{ item.unitPrice | currency:'EGP' }}
+                  </li>
+                </ul>
+                <div style="margin-top:8px;">Total Items: <b>{{ order.items && order.items.length ? order.items.length : 0 }}</b></div>
+              </div>
+              <div>
+                <strong>Total Price:</strong> <span style="color:#0066cc;font-weight:bold;">{{ order.totalPrice | currency:'EGP' }}</span>
+              </div>
+            </div>
+          </td>
+        </tr>
+      </ng-container>
     </tbody>
   </table>
+
+
 
   <div *ngIf="!loading && orders.length === 0" class="empty-state">
     <i class="fas fa-shopping-cart fa-3x"></i>

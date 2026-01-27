@@ -14,8 +14,22 @@ interface OrderItem {
 }
 
 interface UserOrderDto {
+  orderId: number;
   items: OrderItem[];
   totalPrice: number;
+  status: string;
+  email: string;
+  city?: string;
+  street?: string;
+  neighborhood?: string;
+  phoneNumber?: string;
+  createdAt: string;
+  user?: {
+    id: number;
+    name?: string;
+    email: string;
+    phoneNumber?: string;
+  };
 }
 
 @Component({

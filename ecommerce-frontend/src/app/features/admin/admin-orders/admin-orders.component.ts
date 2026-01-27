@@ -1,6 +1,7 @@
 import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { OrderService } from '../../../core/services/order.service';
+import { Category } from '../../../core/services/category.service';
 
 @Component({
   selector: 'app-admin-orders',
@@ -10,11 +11,16 @@ import { OrderService } from '../../../core/services/order.service';
   styleUrl: './admin-orders.component.css'
 })
 export class AdminOrdersComponent implements OnInit {
+    expandedOrderId: number | null = null;
   private orderService = inject(OrderService);
   private cdr = inject(ChangeDetectorRef);
   
   orders: any[] = [];
   loading = false;
+
+  toggleExpand(orderId: number) {
+    this.expandedOrderId = this.expandedOrderId === orderId ? null : orderId;
+  }
 
   ngOnInit(): void {
     this.loadOrders();

@@ -14,6 +14,36 @@ import { AuthService } from '../../../core/services/auth.service';
   styleUrls: ['./products.component.css']
 })
 export class ProductsComponent implements OnInit {
+
+    buyNow(product: Product): void {
+      if (this.getProductStock(product) === 0) return;
+
+      // يمكنك هنا تمرير بيانات المنتج عبر state أو query params
+      // سنستخدم state (أكثر أمانًا)
+      const variant = product.variants && product.variants.length ? product.variants[0] : null;
+      const variantId = variant ? variant.id : undefined;
+      const unitPrice = variant ? variant.price : product.price;
+
+      // إذا لم يكن المستخدم مسجل دخول، وجهه للـ login أولاً
+      if (!this.authService.isAuthenticated()) { // <-- FIXED LINE
+        this.router.navigate(['/login'], { queryParams: { returnUrl: '/checkout' } });
+        return;
+      }
+
+      // انتقل إلى صفحة checkout مع بيانات المنتج فقط
+      this.router.navigate(['/checkout'], {
+        state: {
+          directBuy: true,
+          item: {
+            productId: product.id,
+            variantId,
+            productName: product.name,
+            quantity: 1,
+            price: unitPrice
+          }
+        }
+      });
+    }
   private readonly productService = inject(ProductService);
   private readonly categoryService = inject(CategoryService);
   private readonly cartService = inject(CartService);
@@ -106,24 +136,26 @@ export class ProductsComponent implements OnInit {
     if (this.getProductStock(product) === 0) return;
 
     const variant = product.variants && product.variants.length ? product.variants[0] : null;
-    const variantId = variant ? variant.id : undefined;
+    const variantId = variant ? variant.id : undefined; // اتركها undefined إذا المنتج ليس له variants
     const unitPrice = variant ? variant.price : product.price;
 
     this.addingToCart = product.id;
     this.cartService.addItem({
-      productId: product.id,
-      variantId,
+      productId: product.id, // أرسل دائماً productId
+      variantId, // أرسل variantId فقط إذا موجود
       productName: product.description,
       quantity: 1,
       price: unitPrice
     }).subscribe(
       () => {
         this.addingToCart = null;
+        this.error = null;
       },
       (err: any) => {
         this.addingToCart = null;
         console.error('Error:', err);
-        this.error = 'Failed to add product to cart';
+        this.error = err?.message || 'Failed to add product to cart';
+        this.cdr.markForCheck();
       }
     );
   }
