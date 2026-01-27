@@ -1,6 +1,7 @@
 <div class="orders-container">
   <div class="orders-header">
     <h2><i class="fas fa-box"></i> My Orders</h2>
+    <button class="btn-refresh" (click)="refreshOrders()">🔄 Refresh</button>
   </div>
 
   <!-- Loading State -->
@@ -21,44 +22,48 @@
     <div class="order-card" *ngFor="let order of orders">
       <div class="order-header">
         <div class="order-info">
-          <h5>Order #{{ order.orderId || order.id || order.Id }}</h5>
+          <h5>Order #{{ order.id }}</h5>
           <p class="text-muted mb-0">
             <i class="fas fa-calendar"></i> {{ order.createdAt | date:'short' }}
           </p>
-          <ng-container *ngIf="order.user">
-            <div class="user-info mt-2">
-              <span><i class="fas fa-user"></i> {{ order.user.name || order.user.email }}</span>
-              <span *ngIf="order.user.phoneNumber"> | <i class="fas fa-phone"></i> {{ order.user.phoneNumber }}</span>
-            </div>
-          </ng-container>
-          <div class="address-info mt-1" *ngIf="order.city || order.street">
+          <div class="address-info mt-1" *ngIf="order.city || order.shippingAddress">
             <i class="fas fa-map-marker-alt"></i>
-            {{ order.city }}, {{ order.street }}<span *ngIf="order.neighborhood">, {{ order.neighborhood }}</span>
+            {{ order.city }}<span *ngIf="order.shippingAddress">, {{ order.shippingAddress }}</span>
+          </div>
+          <div class="phone-info mt-1" *ngIf="order.phoneNumber">
+            <i class="fas fa-phone"></i> {{ order.phoneNumber }}
+          </div>
+          <div class="name-info mt-1" *ngIf="order.fullName">
+            <i class="fas fa-user"></i> {{ order.fullName }}
           </div>
         </div>
         <div class="order-status">
-          <span [ngClass]="'badge badge-' + (order.status || 'info')">
+          <span class="badge" [ngClass]="getStatusClass(order.status)">
             {{ order.status }}
           </span>
         </div>
       </div>
 
-      <!-- Order Items -->
-      <div class="order-items" *ngIf="order.items && order.items.length > 0">
-        <h6 class="mb-3"><i class="fas fa-list"></i> Order Items</h6>
+      <!-- Order Items (Expandable) -->
+      <div class="order-summary" (click)="toggleExpand(order.id)">
+        <span><i class="fas fa-list"></i> {{ getTotalItems(order) }} Items</span>
+        <span class="expand-icon">{{ expandedOrderId === order.id ? '▲' : '▼' }}</span>
+      </div>
+
+      <div class="order-items" *ngIf="expandedOrderId === order.id && order.items && order.items.length > 0">
         <div class="item-row" *ngFor="let item of order.items">
           <div class="item-info">
-            <span class="item-name">{{ item.productName }}</span>
+            <span class="item-name">{{ item.productName || 'Product #' + item.productId }}</span>
             <span class="item-quantity">× {{ item.quantity }}</span>
           </div>
-          <div class="item-price">{{ item.unitPrice | currency:'EGP' }}</div>
+          <div class="item-price">{{ item.unitPrice || item.price | currency:'USD' }}</div>
         </div>
       </div>
 
       <!-- Order Total -->
       <div class="order-total">
         <span>Total Amount</span>
-        <strong>{{ order.totalPrice | currency:'EGP' }}</strong>
+        <strong>{{ order.totalPrice | currency:'USD' }}</strong>
       </div>
     </div>
   </div>

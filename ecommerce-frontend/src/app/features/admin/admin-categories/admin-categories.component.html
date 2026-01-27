@@ -1,61 +1,32 @@
-<div class="admin-categories">
+<div class="admin-categories-container">
   <div class="header">
-    <h1><i class="fas fa-tags"></i> Category Management</h1>
-    <button class="btn btn-primary" (click)="addCategory()">
-      <i class="fas fa-plus"></i> Add Category
-    </button>
+    <h1>📦 Product Categories</h1>
+    <button class="btn-refresh" (click)="refreshCategories()">🔄 Refresh</button>
   </div>
 
-  <div *ngIf="showAddForm" class="form-overlay">
-    <div class="form-modal">
-      <h2>{{ editingCategory ? 'Edit Category' : 'Add New Category' }}</h2>
-      <form (ngSubmit)="saveCategory()">
-        <div class="form-group">
-          <label>Name</label>
-          <input type="text" [(ngModel)]="newCategory.name" name="name" required class="form-control">
-        </div>
-        <div class="form-group">
-          <label>Description</label>
-          <textarea [(ngModel)]="newCategory.description" name="description" class="form-control"></textarea>
-        </div>
-        <div class="form-actions">
-          <button type="submit" class="btn btn-success">Save</button>
-          <button type="button" class="btn btn-secondary" (click)="cancelEdit()">Cancel</button>
-        </div>
-      </form>
-    </div>
-  </div>
+  <div *ngIf="error" class="alert alert-error">{{ error }}</div>
 
   <div *ngIf="loading" class="loading">Loading categories...</div>
 
-  <table class="categories-table" *ngIf="!loading && categories.length > 0">
-    <thead>
-      <tr>
-        <th>ID</th>
-        <th>Name</th>
-        <th>Description</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let category of categories">
-        <td>{{ category.id }}</td>
-        <td>{{ category.name }}</td>
-        <td>{{ category.description }}</td>
-        <td>
-          <button class="btn btn-sm btn-warning" (click)="editCategory(category)">
-            <i class="fas fa-edit"></i> Edit
-          </button>
-          <button class="btn btn-sm btn-danger" (click)="deleteCategory(category.id)">
-            <i class="fas fa-trash"></i> Delete
-          </button>
-        </td>
-      </tr>
-    </tbody>
-  </table>
-
   <div *ngIf="!loading && categories.length === 0" class="empty-state">
-    <i class="fas fa-tags fa-3x"></i>
-    <p>No categories yet. Add your first category!</p>
+    <p>No categories available. Categories are managed by the system administrator.</p>
+  </div>
+
+  <div *ngIf="!loading && categories.length > 0" class="categories-grid">
+    <div *ngFor="let category of categories" class="category-card" (click)="viewCategoryProducts(category.name)">
+      <div class="category-icon">📦</div>
+      <div class="category-info">
+        <h2>{{ category.name }}</h2>
+        <p class="category-description">{{ category.description }}</p>
+        <div class="category-meta">
+          <span class="product-count">{{ category.productCount }} Products</span>
+          <span class="view-link">View Products →</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="info-box" *ngIf="!loading && categories.length > 0">
+    <p><strong>ℹ️ Note:</strong> This is a read-only view. Categories are managed by the system administrator. Click on any category to manage its products.</p>
   </div>
 </div>

@@ -4,8 +4,10 @@ import { ApiService } from './api.service';
 
 export interface OrderItem {
   productId: number;
+  productName?: string;
   quantity: number;
   price: number;
+  unitPrice?: number;
 }
 
 export interface Order {
@@ -15,9 +17,11 @@ export interface Order {
   status: string;
   items: OrderItem[];
   createdAt: string;
-  shippingAddress: string;
-  city: string;
-  phoneNumber: string;
+  shippingAddress?: string;
+  city?: string;
+  phoneNumber?: string;
+  fullName?: string;
+  totalQuantity?: number;
 }
 
 @Injectable({
@@ -31,13 +35,28 @@ export class OrderService {
     return this.apiService.get<Order[]>('order');
   }
 
-  // Get user's orders - uses /api/user/orders endpoint
-  getUserOrders(): Observable<any> {
-    return this.apiService.get<any>('user/orders');
+  // Get user's orders
+  getUserOrders(): Observable<Order[]> {
+    return this.apiService.get<Order[]>('user/orders');
   }
 
-  // Update order status (Admin only)
+  // Get order by ID
+  getOrderById(orderId: number): Observable<Order> {
+    return this.apiService.get<Order>(`order/${orderId}`);
+  }
+
+  // Update order status (Admin/Owner only)
   updateOrderStatus(orderId: number, status: string): Observable<any> {
     return this.apiService.put(`order/status?orderId=${orderId}&status=${status}`, {});
+  }
+
+  // Cancel order (Admin/Owner only)
+  cancelOrder(orderId: number): Observable<any> {
+    return this.updateOrderStatus(orderId, 'Cancelled');
+  }
+
+  // Delete order (Admin/Owner only)
+  deleteOrder(orderId: number): Observable<any> {
+    return this.apiService.delete(`order/${orderId}`);
   }
 }

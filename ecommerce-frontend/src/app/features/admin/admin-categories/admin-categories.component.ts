@@ -1,28 +1,31 @@
 import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { CategoryService } from '../../../core/services/category.service';
+import { Router, RouterLink } from '@angular/router';
+import { CategoryService, Category } from '../../../core/services/category.service';
+import { ProductService } from '../../../core/services/product.service';
+import { forkJoin, of } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
+
+interface CategoryWithCount extends Category {
+  productCount: number;
+}
 
 @Component({
   selector: 'app-admin-categories',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, RouterLink],
   templateUrl: './admin-categories.component.html',
   styleUrl: './admin-categories.component.css'
 })
 export class AdminCategoriesComponent implements OnInit {
   private categoryService = inject(CategoryService);
+  private productService = inject(ProductService);
+  private router = inject(Router);
   private cdr = inject(ChangeDetectorRef);
   
-  categories: any[] = [];
+  categories: CategoryWithCount[] = [];
   loading = false;
-  showAddForm = false;
-  editingCategory: any = null;
-
-  newCategory = {
-    name: '',
-    description: ''
-  };
+  error: string | null = null;
 
   ngOnInit(): void {
     this.loadCategories();
@@ -30,89 +33,62 @@ export class AdminCategoriesComponent implements OnInit {
 
   loadCategories(): void {
     this.loading = true;
+    this.error = null;
+    
     this.categoryService.getCategories().subscribe({
-      next: (data) => {
-        this.categories = data;
-        this.loading = false;
-        this.cdr.markForCheck();
+      next: (categories) => {
+        console.log('✅ Categories loaded:', categories.length);
+        
+        // Get product count for each category
+        const countRequests = categories.map(category =>
+          this.productService.getProductsByCategory(category.name, 1, 1).pipe(
+            map(pagedResult => ({
+              ...category,
+              productCount: pagedResult.totalCount
+            })),
+            catchError(() => of({
+              ...category,
+              productCount: 0
+            }))
+          )
+        );
+
+        if (countRequests.length === 0) {
+          this.categories = [];
+          this.loading = false;
+          this.cdr.detectChanges();
+          return;
+        }
+
+        forkJoin(countRequests).subscribe({
+          next: (categoriesWithCount) => {
+            this.categories = categoriesWithCount;
+            this.loading = false;
+            this.cdr.detectChanges();
+          },
+          error: (err) => {
+            console.error('❌ Error loading product counts:', err);
+            this.categories = categories.map(c => ({ ...c, productCount: 0 }));
+            this.loading = false;
+            this.cdr.detectChanges();
+          }
+        });
       },
       error: (err) => {
-        console.error('Error loading categories:', err);
+        console.error('❌ Error loading categories:', err);
+        this.error = 'Failed to load categories';
         this.loading = false;
-        this.cdr.markForCheck();
+        this.cdr.detectChanges();
       }
     });
   }
 
-  addCategory(): void {
-    this.showAddForm = true;
-    this.editingCategory = null;
-    this.resetForm();
+  viewCategoryProducts(categoryName: string): void {
+    this.router.navigate(['/admin/categories', categoryName, 'products']);
   }
 
-  editCategory(category: any): void {
-    this.showAddForm = true;
-    this.editingCategory = category;
-    this.newCategory = { ...category };
-  }
-
-  saveCategory(): void {
-    if (!this.newCategory.name) {
-      alert('Please enter a category name');
-      return;
-    }
-
-    if (this.editingCategory) {
-      // Update existing category
-      this.categoryService.updateCategory(this.editingCategory.id, this.newCategory).subscribe({
-        next: () => {
-          this.cancelEdit();
-          this.loadCategories();
-        },
-        error: (err) => {
-          console.error('Error updating category:', err);
-          alert('Failed to update category');
-        }
-      });
-    } else {
-      // Add new category
-      this.categoryService.addCategory(this.newCategory).subscribe({
-        next: () => {
-          this.cancelEdit();
-          this.loadCategories();
-        },
-        error: (err) => {
-          console.error('Error creating category:', err);
-          alert('Failed to create category');
-        }
-      });
-    }
-  }
-
-  deleteCategory(id: number): void {
-    if (confirm('Are you sure you want to delete this category?')) {
-      this.categoryService.deleteCategory(id).subscribe({
-        next: () => {
-          this.loadCategories();
-        },
-        error: (err) => {
-          console.error('Error deleting category:', err);
-          alert('Failed to delete category');
-        }
-      });
-    }
-  }
-
-  cancelEdit(): void {
-    this.showAddForm = false;
-    this.editingCategory = null;
-    this.resetForm();
-  }
-
-  private resetForm(): void {
-    this.newCategory = {
-      name: '',
-      description: ''
-    };
+  refreshCategories(): void {
+    this.categoryService.clearCache();
+    this.loadCategories();
   }
 }

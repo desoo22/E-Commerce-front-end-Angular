@@ -31,12 +31,13 @@ export class CheckoutComponent implements OnInit {
   totalWithShipping = 0;
 
   ngOnInit(): void {
+    // Redirect to login with returnUrl if not authenticated
     if (!this.authService.isAuthenticated()) {
-      this.router.navigate(['/login'], { queryParams: { returnUrl: '/cart' } });
+      this.router.navigate(['/login'], { queryParams: { returnUrl: '/checkout' } });
       return;
     }
 
-    // جلب الإيميل من التوكن أو من بيانات المستخدم
+    // Get email from token
     let email = '';
     const token = localStorage.getItem('accessToken');
     if (token) {
@@ -45,7 +46,6 @@ export class CheckoutComponent implements OnInit {
         email = payload.email || '';
       } catch {}
     }
-    // إذا لم يوجد في التوكن، جرب من profile أو backend إذا متاح
 
     this.initializeForm(email);
     this.loadCart();
@@ -89,8 +89,6 @@ export class CheckoutComponent implements OnInit {
   }
 
   private calculateShippingCost(): void {
-    // Shipping will be calculated from product shipping costs when Backend provides them
-    // For now, set to 0 (will be updated when shippingCost is available in cart items)
     this.shippingCost = 0;
     this.totalWithShipping = (this.cart?.totalPrice || 0) + this.shippingCost;
   }
@@ -104,7 +102,7 @@ export class CheckoutComponent implements OnInit {
     this.submitting = true;
     this.error = null;
 
-    // استخدم الإيميل من التوكن دائماً
+    // Get email from token
     let email = '';
     const token = localStorage.getItem('accessToken');
     if (token) {
@@ -113,6 +111,7 @@ export class CheckoutComponent implements OnInit {
         email = payload.email || '';
       } catch {}
     }
+    
     const checkoutData: CheckOutDto = {
       email: email,
       fullName: this.checkoutForm.get('fullName')?.value,

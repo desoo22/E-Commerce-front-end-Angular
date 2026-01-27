@@ -20,6 +20,7 @@ export class LoginComponent implements OnInit {
   loading = false;
   error: string | null = null;
   success: string | null = null;
+  private returnUrl: string = '/products';
 
   constructor(
     private fb: FormBuilder,
@@ -33,8 +34,11 @@ export class LoginComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    // Get return URL from query params (for "Login to checkout" flow)
+    this.returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') || '/products';
+    
     if (this.authService.isAuthenticated()) {
-      this.router.navigate(['/products']);
+      this.router.navigate([this.returnUrl]);
     }
   }
 
@@ -75,14 +79,14 @@ export class LoginComponent implements OnInit {
       .subscribe(
         (response) => { 
           console.log('✅ OTP Request Response:', response);
-          this.success = 'otp_sent_successfully'; 
+          this.success = 'OTP sent successfully to your email'; 
           this.step = 'otp';
           console.log('📍 Step changed to:', this.step);
           this.cdr.detectChanges();
         },
         (err: any) => { 
           console.error('❌ OTP Request Error:', err);
-          this.error = err.error?.message || 'failed_to_send_otp'; 
+          this.error = err.error?.message || 'Failed to send OTP. Please try again.'; 
         }
       );
   }
@@ -97,29 +101,38 @@ export class LoginComponent implements OnInit {
       otp: this.loginForm.get('otp')?.value
     };
 
-    // Add timeout handling
     this.authService.verifyOtp(dto).pipe(
-      timeout(30000)  // 30 seconds timeout
+      timeout(30000)
     ).subscribe({
       next: (response) => {
-        console.log('Login successful:', response);
+        console.log('✅ Login successful:', response);
         this.loading = false;
         
         // 🔥 Transfer guest cart to user cart after login, then redirect
-        const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') || '/products';
         this.transferGuestCart().subscribe({
-          next: () => {
-            console.log('✅ Guest cart transferred (if any)');
-            setTimeout(() => this.router.navigate([returnUrl]), 500);
+          next: (mergeResult) => {
+            if (mergeResult && mergeResult.items.length > 0) {
+              console.log(`✅ Guest cart merged: ${mergeResult.items.length} items`);
+              this.success = `Cart merged successfully! ${mergeResult.items.length} items added.`;
+            } else {
+              console.log('✅ No guest cart to merge');
+            }
+            
+            // Redirect to returnUrl (checkout if "Login to checkout" was clicked)
+            setTimeout(() => {
+              console.log(`🔄 Redirecting to: ${this.returnUrl}`);
+              this.router.navigate([this.returnUrl]);
+            }, 500);
           },
           error: (err: any) => {
             console.error('❌ Guest cart transfer failed', err);
-            setTimeout(() => this.router.navigate([returnUrl]), 500);
+            // Still redirect even if merge fails
+            setTimeout(() => this.router.navigate([this.returnUrl]), 500);
           }
         });
       },
       error: (error) => {
-        console.error('Login failed:', error);
+        console.error('❌ Login failed:', error);
         this.loading = false;
         
         if (error.name === 'TimeoutError') {
@@ -133,15 +146,19 @@ export class LoginComponent implements OnInit {
 
   private transferGuestCart(): Observable<CartDto | null> {
     const guestCartRaw = localStorage.getItem('guest_cart');
-    if (!guestCartRaw) return of(null);
+    if (!guestCartRaw) {
+      console.log('ℹ️ No guest cart found');
+      return of(null);
+    }
     
     try {
       const guestCart = JSON.parse(guestCartRaw);
       if (guestCart && guestCart.items && guestCart.items.length > 0) {
+        console.log(`🔄 Syncing guest cart with ${guestCart.items.length} items...`);
         return this.cartService.syncGuestCartToUser();
       }
     } catch (e) {
-      console.error('Failed to parse guest cart', e);
+      console.error('❌ Failed to parse guest cart', e);
     }
     return of(null);
   }

@@ -1,36 +1,9 @@
 import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule, CurrencyPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { ApiService } from '../../core/services/api.service';
+import { OrderService, Order } from '../../core/services/order.service';
 import { AuthService } from '../../core/services/auth.service';
 import { Router } from '@angular/router';
-import { filter, take } from 'rxjs/operators';
-
-interface OrderItem {
-  productVariantId: number;
-  productName: string;
-  quantity: number;
-  unitPrice: number;
-}
-
-interface UserOrderDto {
-  orderId: number;
-  items: OrderItem[];
-  totalPrice: number;
-  status: string;
-  email: string;
-  city?: string;
-  street?: string;
-  neighborhood?: string;
-  phoneNumber?: string;
-  createdAt: string;
-  user?: {
-    id: number;
-    name?: string;
-    email: string;
-    phoneNumber?: string;
-  };
-}
 
 @Component({
   selector: 'app-orders',
@@ -40,11 +13,12 @@ interface UserOrderDto {
   styleUrls: ['./orders.component.css']
 })
 export class OrdersComponent implements OnInit {
-  orders: any[] = [];
+  orders: Order[] = [];
   loading = true;
   error = '';
+  expandedOrderId: number | null = null;
 
-  private apiService = inject(ApiService);
+  private orderService = inject(OrderService);
   private authService = inject(AuthService);
   private router = inject(Router);
   private cdr = inject(ChangeDetectorRef);
@@ -64,26 +38,22 @@ export class OrdersComponent implements OnInit {
     const userRole = this.authService.getUserRole();
     const isAdminOrOwner = userRole === 'Admin' || userRole === 'Owner';
     
+    console.log(`🔍 Loading orders, Role: ${userRole}`);
+    
     // Admin/Owner: get all orders, User: get only their orders
-    const endpoint = isAdminOrOwner ? 'order' : 'user/orders';
+    const ordersObservable = isAdminOrOwner 
+      ? this.orderService.getAllOrders() 
+      : this.orderService.getUserOrders();
     
-    console.log(`🔍 Loading orders from: ${endpoint}, Role: ${userRole}`);
-    
-    // Load the actual orders data
-    this.apiService.get<any>(endpoint).subscribe({
-      next: (data: any) => {
+    ordersObservable.subscribe({
+      next: (data: Order[]) => {
         console.log('✅ Orders response:', data);
         
-        // Handle different response formats
-        if (data && Array.isArray(data)) {
-          // If data is already an array
-          this.orders = data;
-        } else if (data && data.items && Array.isArray(data.items)) {
-          // If data has items property
-          this.orders = data.items;
-        } else {
-          this.orders = [];
-        }
+        // Calculate total quantity for each order
+        this.orders = data.map(order => ({
+          ...order,
+          totalQuantity: order.items?.reduce((sum, item) => sum + item.quantity, 0) || 0
+        }));
         
         this.loading = false;
         this.cdr.markForCheck();
@@ -102,4 +72,25 @@ export class OrdersComponent implements OnInit {
       }
     });
   }
+
+  toggleExpand(orderId: number): void {
+    this.expandedOrderId = this.expandedOrderId === orderId ? null : orderId;
   }
+
+  getTotalItems(order: Order): number {
+    return order.items?.reduce((sum, item) => sum + item.quantity, 0) || 0;
+  }
+
+  getStatusClass(status: string): string {
+    const statusLower = status.toLowerCase();
+    if (statusLower === 'delivered') return 'status-delivered';
+    if (statusLower === 'shipped') return 'status-shipped';
+    if (statusLower === 'processing') return 'status-processing';
+    if (statusLower === 'cancelled') return 'status-cancelled';
+    return 'status-pending';
+  }
+
+  refreshOrders(): void {
+    this.loadOrders();
+  }
+}

@@ -9,6 +9,7 @@ import { CheckoutComponent } from './features/checkout/checkout.component';
 import { AdminDashboardComponent } from './features/admin/admin-dashboard/admin-dashboard.component';
 import { AdminProductsComponent } from './features/admin/admin-products/admin-products.component';
 import { AdminCategoriesComponent } from './features/admin/admin-categories/admin-categories.component';
+import { AdminCategoryProductsComponent } from './features/admin/admin-category-products/admin-category-products.component';
 import { AdminOrdersComponent } from './features/admin/admin-orders/admin-orders.component';
 import { AdminUsersComponent } from './features/admin/admin-users/admin-users.component';
 import { adminGuard } from './core/guards/admin.guard';
@@ -28,9 +29,10 @@ export const routes: Routes = [
     component: AdminDashboardComponent,
     canActivate: [adminGuard],
     children: [
-      { path: '', redirectTo: 'products', pathMatch: 'full' },
+      { path: '', redirectTo: 'categories', pathMatch: 'full' },
       { path: 'products', component: AdminProductsComponent },
       { path: 'categories', component: AdminCategoriesComponent },
+      { path: 'categories/:name/products', component: AdminCategoryProductsComponent },
       { path: 'orders', component: AdminOrdersComponent },
       { path: 'users', component: AdminUsersComponent, canActivate: [ownerGuard] }
     ]
