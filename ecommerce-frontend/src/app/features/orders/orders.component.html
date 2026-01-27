@@ -45,12 +45,12 @@
       </div>
 
       <!-- Order Items (Expandable) -->
-      <div class="order-summary" (click)="toggleExpand(order.id)">
+      <div class="order-summary" (click)="toggleExpand(order.orderId || order.id!)">
         <span><i class="fas fa-list"></i> {{ getTotalItems(order) }} Items</span>
-        <span class="expand-icon">{{ expandedOrderId === order.id ? '▲' : '▼' }}</span>
+        <span class="expand-icon">{{ expandedOrderId === (order.orderId || order.id) ? '▲' : '▼' }}</span>
       </div>
 
-      <div class="order-items" *ngIf="expandedOrderId === order.id && order.items && order.items.length > 0">
+      <div class="order-items" *ngIf="expandedOrderId === (order.orderId || order.id) && order.items && order.items.length > 0">
         <div class="item-row" *ngFor="let item of order.items">
           <div class="item-info">
             <span class="item-name">{{ item.productName || 'Product #' + item.productId }}</span>

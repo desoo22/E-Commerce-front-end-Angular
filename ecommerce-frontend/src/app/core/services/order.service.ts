@@ -10,16 +10,30 @@ export interface OrderItem {
   unitPrice?: number;
 }
 
-export interface Order {
+export interface User {
   id: number;
-  userId: number;
+  name: string;
+  email: string;
+  phoneNumber?: string;
+}
+
+export interface Order {
+  orderId: number;
+  id?: number; // For backward compatibility
+  userId?: number;
   totalPrice: number;
   status: string;
   items: OrderItem[];
+  itemCount: number;
   createdAt: string;
-  shippingAddress?: string;
+  email: string;
   city?: string;
+  street?: string;
+  neighborhood?: string;
   phoneNumber?: string;
+  user?: User;
+  // Legacy fields for backward compatibility
+  shippingAddress?: string;
   fullName?: string;
   totalQuantity?: number;
 }

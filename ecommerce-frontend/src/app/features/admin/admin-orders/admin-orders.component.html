@@ -24,57 +24,60 @@
     </thead>
     <tbody>
       <ng-container *ngFor="let order of orders">
-        <tr>
+        <tr [ngClass]="getRowClass(order.status)">
           <td style="text-align:center;">
-            <button (click)="toggleExpand(order.id)" style="background:none;border:none;outline:none;cursor:pointer;font-size:18px;">
-              <span [ngClass]="expandedOrderId === order.id ? 'fa fa-chevron-down' : 'fa fa-chevron-right'"></span>
+            <button (click)="toggleExpand(order.orderId)" style="background:none;border:none;outline:none;cursor:pointer;font-size:18px;">
+              <span [ngClass]="expandedOrderId === order.orderId ? 'fa fa-chevron-down' : 'fa fa-chevron-right'"></span>
             </button>
           </td>
-          <td>#{{ order.id }}</td>
-          <td>{{ order.fullName || 'N/A' }}</td>
-          <td>{{ order.phoneNumber || 'N/A' }}</td>
+          <td><strong>#{{ order.orderId }}</strong></td>
+          <td>{{ order.user?.name || 'N/A' }}</td>
+          <td>{{ order.phoneNumber || order.user?.phoneNumber || 'N/A' }}</td>
           <td>
             <span class="status-badge" [ngClass]="getStatusClass(order.status)">
               {{ order.status }}
             </span>
           </td>
-          <td>{{ getTotalItems(order) }}</td>
-          <td>{{ order.totalPrice | currency:'USD' }}</td>
+          <td><strong>{{ order.itemCount || getTotalItems(order) }}</strong></td>
+          <td><strong>{{ order.totalPrice | currency:'USD' }}</strong></td>
           <td>
-            <select class="status-select" [value]="order.status" (change)="updateStatus(order.id, $any($event.target).value)">
-              <option value="Pending">Pending</option>
-              <option value="Processing">Processing</option>
+            <select class="status-select" [value]="order.status" (change)="updateStatus(order.orderId, $any($event.target).value)">
+              <option value="PendingPayment">Pending Payment</option>
               <option value="Shipped">Shipped</option>
               <option value="Delivered">Delivered</option>
               <option value="Cancelled">Cancelled</option>
             </select>
-            <button class="btn-cancel" (click)="cancelOrder(order.id)" *ngIf="order.status !== 'Cancelled'">Cancel</button>
-            <button class="btn-delete" (click)="deleteOrder(order.id)">Delete</button>
           </td>
         </tr>
-        <tr *ngIf="expandedOrderId === order.id">
+        <tr *ngIf="expandedOrderId === order.orderId" [ngClass]="getRowClass(order.status)">
           <td colspan="8" style="background:#f9fafb; border-bottom:1px solid #e5e7eb;">
             <div style="padding:1em 2em;">
               <div style="margin-bottom:10px;">
-                <strong>Customer Info:</strong><br>
-                <span *ngIf="order.fullName"><i class="fa fa-user"></i> {{ order.fullName }}</span><br>
-                <span *ngIf="order.phoneNumber"><i class="fa fa-phone"></i> {{ order.phoneNumber }}</span><br>
-                <span *ngIf="order.city || order.shippingAddress"><i class="fa fa-map-marker"></i> {{ order.city }}<span *ngIf="order.shippingAddress">, {{ order.shippingAddress }}</span></span>
+                <strong>📍 Customer Info:</strong><br>
+                <span *ngIf="order.user?.name"><i class="fa fa-user"></i> <strong>Name:</strong> {{ order.user?.name }}</span><br>
+                <span *ngIf="order.email"><i class="fa fa-envelope"></i> <strong>Email:</strong> {{ order.email }}</span><br>
+                <span *ngIf="order.phoneNumber || order.user?.phoneNumber"><i class="fa fa-phone"></i> <strong>Phone:</strong> {{ order.phoneNumber || order.user?.phoneNumber }}</span><br>
+                <span *ngIf="order.city || order.street || order.neighborhood">
+                  <i class="fa fa-map-marker"></i> <strong>Address:</strong> 
+                  {{ order.street }}<span *ngIf="order.neighborhood">, {{ order.neighborhood }}</span><span *ngIf="order.city">, {{ order.city }}</span>
+                </span>
               </div>
               <div style="margin-bottom:10px;">
-                <strong>Order Items:</strong>
+                <strong>📦 Order Items:</strong>
                 <ul style="margin:0; padding-left: 1.2em;">
                   <li *ngFor="let item of order.items">
-                    {{ item.productName || 'Product #' + item.productId }} × {{ item.quantity }} - {{ item.unitPrice || item.price | currency:'USD' }}
+                    <strong>{{ item.productName }}</strong> × {{ item.quantity }} - {{ item.unitPrice | currency:'USD' }}
                   </li>
                 </ul>
-                <div style="margin-top:8px;">Total Items: <b>{{ getTotalItems(order) }}</b></div>
+                <div style="margin-top:8px;">
+                  <strong>Total Items:</strong> <b style="color:#0066cc;">{{ order.itemCount || getTotalItems(order) }}</b>
+                </div>
               </div>
               <div>
-                <strong>Total Price:</strong> <span style="color:#0066cc;font-weight:bold;">{{ order.totalPrice | currency:'USD' }}</span>
+                <strong>💰 Total Price:</strong> <span style="color:#0066cc;font-weight:bold;font-size:1.1em;">{{ order.totalPrice | currency:'USD' }}</span>
               </div>
               <div style="margin-top:10px;">
-                <strong>Order Date:</strong> {{ order.createdAt | date:'medium' }}
+                <strong>📅 Order Date:</strong> {{ order.createdAt | date:'medium' }}
               </div>
             </div>
           </td>
