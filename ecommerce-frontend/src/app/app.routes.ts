@@ -30,7 +30,6 @@ export const routes: Routes = [
     canActivate: [adminGuard],
     children: [
       { path: '', redirectTo: 'categories', pathMatch: 'full' },
-      { path: 'products', component: AdminProductsComponent },
       { path: 'categories', component: AdminCategoriesComponent },
       { path: 'categories/:name/products', component: AdminCategoryProductsComponent },
       { path: 'orders', component: AdminOrdersComponent },

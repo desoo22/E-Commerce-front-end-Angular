@@ -1,7 +1,8 @@
 import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { CategoryService, Category } from '../../../core/services/category.service';
+import { CategoryService, Category, NewCategoryDto } from '../../../core/services/category.service';
 import { ProductService } from '../../../core/services/product.service';
 import { forkJoin, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
@@ -13,7 +14,7 @@ interface CategoryWithCount extends Category {
 @Component({
   selector: 'app-admin-categories',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, FormsModule],
   templateUrl: './admin-categories.component.html',
   styleUrl: './admin-categories.component.css'
 })
@@ -26,6 +27,13 @@ export class AdminCategoriesComponent implements OnInit {
   categories: CategoryWithCount[] = [];
   loading = false;
   error: string | null = null;
+  success: string | null = null;
+  showAddForm = false;
+
+  newCategory: NewCategoryDto = {
+    name: '',
+    description: ''
+  };
 
   ngOnInit(): void {
     this.loadCategories();
@@ -90,5 +98,43 @@ export class AdminCategoriesComponent implements OnInit {
   refreshCategories(): void {
     this.categoryService.clearCache();
     this.loadCategories();
+  }
+
+  openAddForm(): void {
+    this.showAddForm = true;
+    this.newCategory = { name: '', description: '' };
+    this.error = null;
+    this.success = null;
+  }
+
+  closeAddForm(): void {
+    this.showAddForm = false;
+    this.newCategory = { name: '', description: '' };
+  }
+
+  saveCategory(): void {
+    if (!this.newCategory.name || !this.newCategory.description) {
+      this.error = 'Please fill in all fields';
+      return;
+    }
+
+    this.loading = true;
+    this.error = null;
+
+    this.categoryService.addCategory(this.newCategory).subscribe({
+      next: () => {
+        this.success = 'Category created successfully!';
+        this.closeAddForm();
+        this.categoryService.clearCache();
+        this.loadCategories();
+        setTimeout(() => this.success = null, 3000);
+      },
+      error: (err) => {
+        console.error('❌ Error creating category:', err);
+        this.error = err.error?.message || 'Failed to create category';
+        this.loading = false;
+        this.cdr.detectChanges();
+      }
+    });
   }
 }

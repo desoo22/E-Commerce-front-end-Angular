@@ -47,12 +47,12 @@ export class OrderService {
 
   // Update order status (Admin/Owner only)
   updateOrderStatus(orderId: number, status: string): Observable<any> {
-    return this.apiService.put(`order/status?orderId=${orderId}&status=${status}`, {});
+    return this.apiService.put(`order/status/${orderId}`, { status });
   }
 
   // Cancel order (Admin/Owner only)
   cancelOrder(orderId: number): Observable<any> {
-    return this.updateOrderStatus(orderId, 'Cancelled');
+    return this.apiService.put(`order/cancel/${orderId}`, {});
   }
 
   // Delete order (Admin/Owner only)
