@@ -85,6 +85,15 @@
   background-color: #a7f3d0 !important;
 }
 
+.row-pending-payment {
+  background-color: #fef3c7 !important;
+  border-left: 4px solid #f59e0b;
+}
+
+.row-pending-payment:hover {
+  background-color: #fde68a !important;
+}
+
 .btn-cancel {
   padding: 0.4rem 0.8rem;
   background: #ef4444;

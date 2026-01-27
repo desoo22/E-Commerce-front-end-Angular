@@ -120,6 +120,19 @@
                 <i class="fas fa-check"></i> Added to Cart!
               </span>
             </button>
+            <button 
+              class="btn btn-success btn-lg"
+              (click)="buyNow()"
+              [disabled]="buyingNow || (product.variants && product.variants[selectedVariant].quantity === 0)"
+            >
+              <span *ngIf="!buyingNow">
+                <i class="fas fa-bolt"></i> Buy Now
+              </span>
+              <span *ngIf="buyingNow">
+                <span class="spinner-border spinner-border-sm me-2"></span>
+                Processing...
+              </span>
+            </button>
             <button class="btn btn-outline-primary btn-lg" (click)="goToCart()">
               <i class="fas fa-shopping-cart"></i> View Cart
             </button>

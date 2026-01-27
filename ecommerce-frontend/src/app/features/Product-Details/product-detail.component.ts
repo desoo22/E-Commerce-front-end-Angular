@@ -19,6 +19,7 @@ export class ProductDetailComponent implements OnInit {
   quantity = 1;
   addingToCart = false;
   addedToCart = false;
+  buyingNow = false;
 
   constructor(
     private route: ActivatedRoute,
@@ -112,5 +113,38 @@ export class ProductDetailComponent implements OnInit {
 
   goBack(): void {
     this.router.navigate(['/products']);
+  }
+
+  buyNow(): void {
+    if (!this.product) return;
+
+    this.buyingNow = true;
+
+    const hasVariants = this.product.variants && this.product.variants.length > 0;
+    const selectedVariant = hasVariants ? this.product.variants![this.selectedVariant] : null;
+
+    const cartItem: CartItem = {
+      productId: this.product.id,
+      productName: this.product.name,
+      quantity: this.quantity,
+      price: selectedVariant ? selectedVariant.price : this.product.price,
+      variantId: selectedVariant ? selectedVariant.id : this.product.id
+    };
+
+    console.log('🛒 Buy Now - Adding to cart:', cartItem);
+
+    // Add to cart first, then navigate to checkout
+    this.cartService.addItem(cartItem).subscribe({
+      next: () => {
+        console.log('✅ Item added, navigating to checkout');
+        this.buyingNow = false;
+        this.router.navigate(['/checkout']);
+      },
+      error: (err) => {
+        console.error('❌ Error in Buy Now:', err);
+        this.buyingNow = false;
+        alert('Failed to process Buy Now. Please try again.');
+      }
+    });
   }
 }

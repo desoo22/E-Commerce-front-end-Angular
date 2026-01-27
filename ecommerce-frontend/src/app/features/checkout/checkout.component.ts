@@ -5,6 +5,7 @@ import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ReactiveFormsModule } from '@angular/forms';
 import { CartService, CartDto, CheckOutDto } from '../../core/services/cart.service';
 import { AuthService } from '../../core/services/auth.service';
+import { GovernorateService, Governorate } from '../../core/services/governorate.service';
 import { finalize } from 'rxjs';
 
 @Component({
@@ -17,6 +18,7 @@ import { finalize } from 'rxjs';
 export class CheckoutComponent implements OnInit {
   private readonly cartService = inject(CartService);
   private readonly authService = inject(AuthService);
+  private readonly governorateService = inject(GovernorateService);
   private readonly fb = inject(FormBuilder);
   private readonly router = inject(Router);
   private readonly cdr = inject(ChangeDetectorRef);
@@ -29,6 +31,8 @@ export class CheckoutComponent implements OnInit {
   success: string | null = null;
   shippingCost = 0;
   totalWithShipping = 0;
+  governorates: Governorate[] = [];
+  selectedGovernorate: Governorate | null = null;
 
   ngOnInit(): void {
     // Redirect to login with returnUrl if not authenticated
@@ -49,6 +53,7 @@ export class CheckoutComponent implements OnInit {
 
     this.initializeForm(email);
     this.loadCart();
+    this.loadGovernorates();
   }
 
   private initializeForm(email: string = ''): void {
@@ -56,11 +61,17 @@ export class CheckoutComponent implements OnInit {
       email: [{ value: email, disabled: true }, [Validators.required, Validators.email]],
       fullName: ['', [Validators.required, Validators.minLength(3)]],
       phoneNumber: ['', [Validators.required, Validators.pattern(/^[+]?\d{10,}$/)]],
+      governorateId: ['', Validators.required],
       city: ['', Validators.required],
       street: ['', Validators.required],
       building: ['', Validators.required],
       apartment: ['', Validators.required],
       neighborhood: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(50)]]
+    });
+
+    // Listen to governorate changes
+    this.checkoutForm.get('governorateId')?.valueChanges.subscribe(governorateId => {
+      this.onGovernorateChange(governorateId);
     });
   }
 
@@ -88,9 +99,27 @@ export class CheckoutComponent implements OnInit {
     });
   }
 
+  private loadGovernorates(): void {
+    this.governorateService.getAllGovernorates().subscribe({
+      next: (data) => {
+        this.governorates = data;
+        console.log('✅ Governorates loaded:', data);
+      },
+      error: (err) => {
+        console.error('❌ Error loading governorates:', err);
+      }
+    });
+  }
+
   private calculateShippingCost(): void {
-    this.shippingCost = 0;
+    this.shippingCost = this.selectedGovernorate?.shippingCost || 0;
     this.totalWithShipping = (this.cart?.totalPrice || 0) + this.shippingCost;
+  }
+
+  onGovernorateChange(governorateId: number): void {
+    this.selectedGovernorate = this.governorates.find(g => g.id === +governorateId) || null;
+    this.calculateShippingCost();
+    this.cdr.markForCheck();
   }
 
   submit(): void {
@@ -116,6 +145,7 @@ export class CheckoutComponent implements OnInit {
       email: email,
       fullName: this.checkoutForm.get('fullName')?.value,
       phoneNumber: this.checkoutForm.get('phoneNumber')?.value,
+      governorateId: this.checkoutForm.get('governorateId')?.value ? +this.checkoutForm.get('governorateId')?.value : undefined,
       city: this.checkoutForm.get('city')?.value,
       street: this.checkoutForm.get('street')?.value,
       building: this.checkoutForm.get('building')?.value,

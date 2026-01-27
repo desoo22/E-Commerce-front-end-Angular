@@ -142,6 +142,28 @@
                 </div>
               </div>
 
+              <!-- Governorate Selection -->
+              <div class="mb-4">
+                <label for="governorateId" class="form-label fw-bold">Governorate (المحافظة)</label>
+                <select
+                  class="form-select form-select-lg"
+                  id="governorateId"
+                  formControlName="governorateId"
+                  [class.is-invalid]="checkoutForm.get('governorateId')?.invalid && checkoutForm.get('governorateId')?.touched"
+                >
+                  <option value="" disabled selected>Select your governorate</option>
+                  <option *ngFor="let gov of governorates" [value]="gov.id">
+                    {{ gov.nameAr }} - {{ gov.nameEn }} (Shipping: {{ gov.shippingCost | currency:'EGP' }})
+                  </option>
+                </select>
+                <div class="invalid-feedback" *ngIf="checkoutForm.get('governorateId')?.invalid && checkoutForm.get('governorateId')?.touched">
+                  Please select a governorate
+                </div>
+                <small class="text-muted" *ngIf="selectedGovernorate">
+                  <i class="fas fa-truck me-1"></i>Shipping cost: <strong>{{ selectedGovernorate.shippingCost | currency:'EGP' }}</strong>
+                </small>
+              </div>
+
               <!-- Address Section -->
               <h6 class="fw-bold mb-3 mt-4 pt-3 border-top">Delivery Address</h6>
 

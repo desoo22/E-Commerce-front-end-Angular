@@ -83,6 +83,7 @@ export class AdminOrdersComponent implements OnInit {
     const statusLower = status.toLowerCase();
     if (statusLower === 'cancelled') return 'row-cancelled';
     if (statusLower === 'delivered') return 'row-delivered';
+    if (statusLower === 'pendingpayment') return 'row-pending-payment';
     return '';
   }
 }

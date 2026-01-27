@@ -22,6 +22,7 @@ export interface CheckOutDto {
   email: string;
   fullName: string;
   phoneNumber: string;
+  governorateId?: number;
   city: string;
   street: string;
   building: string;
