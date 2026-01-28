@@ -91,11 +91,10 @@ export class AdminCategoryProductsComponent implements OnInit {
       variantColor: product.variants?.[0]?.color || '',
       variantSize: product.variants?.[0]?.size || ''
     };
+    // Clear images - don't load old images to prevent duplication
     this.selectedImages = [];
-    this.previewImages = product.images?.map((img: any) => 
-      typeof img === 'string' ? img : (img.imageData || img.imageUrl)
-    ) || [];
-    this.imagePreviews = [...this.previewImages];
+    this.previewImages = [];
+    this.imagePreviews = [];
   }
 
   saveProduct(): void {
@@ -105,7 +104,7 @@ export class AdminCategoryProductsComponent implements OnInit {
     }
 
     if (this.editingProduct) {
-      const productData = {
+      const productData: any = {
         id: this.editingProduct.id,
         name: this.newProduct.name,
         description: this.newProduct.description,
@@ -117,11 +116,15 @@ export class AdminCategoryProductsComponent implements OnInit {
           quantity: this.newProduct.variantQuantity || 10,
           color: this.newProduct.variantColor || 'Default',
           size: this.newProduct.variantSize || 'One Size'
-        }],
-        images: this.imagePreviews.map(preview => ({
-          imageData: preview
-        }))
+        }]
       };
+      
+      // Only send new images if user selected new ones
+      if (this.selectedImages.length > 0 && this.imagePreviews.length > 0) {
+        productData.images = this.imagePreviews.map(preview => ({
+          imageData: preview
+        }));
+      }
 
       console.log('Updating product:', productData);
 
