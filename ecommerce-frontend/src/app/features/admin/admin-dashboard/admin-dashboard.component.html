@@ -8,6 +8,9 @@
       <a routerLink="/admin/orders" routerLinkActive="active" class="admin-nav-link">
         <i class="fas fa-shopping-cart"></i> Manage Orders
       </a>
+      <a routerLink="/admin/shipping" routerLinkActive="active" class="admin-nav-link">
+        <i class="fas fa-truck"></i> Manage Shipping
+      </a>
       <a *ngIf="(currentUser$ | async)?.role === 'Owner'" 
          routerLink="/admin/users" 
          routerLinkActive="active" 
